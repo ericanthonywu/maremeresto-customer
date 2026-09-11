@@ -10,7 +10,13 @@ export interface Branch {
   icon: string
   facility_tags: string[]
   rating: number
+  /** Manual master switch set by staff. */
   is_open: boolean
+  /** Derived server-side from is_open AND today's operating hours. Trust this. */
+  is_open_now: boolean
+  /** Today's schedule, e.g. "08.00–22.00". Empty when none is configured. */
+  today_hours?: string
+  whatsapp_number?: string
 }
 
 export interface Category {
@@ -72,6 +78,8 @@ export interface Order {
   driver_vehicle?: string
   driver_plate?: string
   driver_rating?: number
+  driver_assigned_at?: string
+  version: number
   items?: OrderItem[]
   payment?: Payment
   created_at: string
@@ -97,4 +105,59 @@ export interface Payment {
   snap_token?: string
   snap_redirect_url?: string
   qr_string?: string
+}
+
+/** One branch's live delivery quote, priced entirely by the backend. */
+export interface BranchDeliveryQuote {
+  branch_id: string
+  branch_slug: string
+  branch_name: string
+  distance_km: number
+  distance_meters: number
+  delivery_fee: number
+  service_fee: number
+  min_order_amount: number
+  eta_minutes: number
+  max_radius_km: number
+  within_radius: boolean
+  free_delivery_from: number
+  is_open_now: boolean
+  is_nearest: boolean
+}
+
+export interface DeliveryQuote {
+  quotes: BranchDeliveryQuote[]
+  nearest_branch_id?: string
+}
+
+export interface GeocodeResult {
+  label: string
+  full_address: string
+  latitude: number
+  longitude: number
+  postcode?: string
+}
+
+/**
+ * How the customer's delivery point was established. The UI must be able to
+ * say so, because a guessed location silently mispriced delivery before.
+ */
+export type LocationSource = 'gps' | 'search' | 'manual'
+
+export interface UserLocation {
+  lat: number
+  lon: number
+  address: string
+  source: LocationSource
+  /** Epoch ms when the fix was taken, so a stale GPS position can be refreshed. */
+  capturedAt: number
+}
+
+export interface PaymentStatus {
+  order_status: Order['status']
+  payment_status: Payment['status']
+  expires_at: string
+  paid_at?: string | null
+  redirect_url?: string | null
+  snap_token?: string | null
 }

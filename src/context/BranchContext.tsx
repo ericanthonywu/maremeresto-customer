@@ -1,185 +1,159 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
-import type { Branch } from '../types'
-import { customerApi } from '../api/client'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import type { Branch, BranchDeliveryQuote } from '../types'
+import { customerApi, errorMessage } from '../api/client'
+import { useLocation } from './LocationContext'
 
-export interface DistanceInfo {
-  branchId: string
-  distanceKm: number
-  distanceMeters: number
-  estimatedMinutes: number
-  deliveryFee: number
-  isNearest: boolean
-}
+const SELECTED_BRANCH_KEY = 'olga_selected_branch_slug'
 
 interface BranchContextType {
   branches: Branch[]
   selectedBranch: Branch | null
   setSelectedBranch: (branch: Branch) => void
   selectBranchBySlug: (slug: string) => void
-  userLocation: { lat: number; lon: number; address: string } | null
-  setUserLocation: (loc: { lat: number; lon: number; address: string }) => void
+
+  /**
+   * Server-priced delivery quotes keyed by branch id. Empty until the customer
+   * has given a location — there is no fallback pricing on the client.
+   */
+  quotes: Record<string, BranchDeliveryQuote>
   nearestBranch: Branch | null
-  getBranchDistanceInfo: (branch: Branch, subtotal?: number) => DistanceInfo
+  quoteFor: (branchId: string) => BranchDeliveryQuote | null
+  quotesLoading: boolean
+  quotesError: string | null
+  /** Re-prices every outlet for the given basket subtotal. */
+  refreshQuotes: (subtotal: number) => Promise<void>
+
   loading: boolean
+  error: string | null
+  reload: () => Promise<void>
 }
 
 const BranchContext = createContext<BranchContextType | undefined>(undefined)
 
-/**
- * Haversine distance formula between two GPS coordinates in kilometers
- * Multiplied by 1.3 to accurately simulate actual road winding distance
- */
-export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371 // Radius bumi dalam km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLon = ((lon2 - lon1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  const straightDistance = R * c
-
-  // Faktor jalan raya 1.3x
-  const roadDistance = straightDistance * 1.3
-  return Math.max(0.5, Math.round(roadDistance * 10) / 10)
-}
-
-/**
- * Formula Perhitungan Ongkos Kirim:
- * - 0 s/d 3.000 meter (3 km pertama): Base Flat Rp 8.000
- * - Di atas 3.000 s/d 7.000 meter: Rp 8.000 + (meter - 3.000) * 1.5/meter (atau Tier Mid Rp 12.000)
- * - Di atas 7.000 meter: Tier Far Rp 18.000
- * - Di atas Rp 150.000: Gratis Ongkir
- */
-export function calculateDeliveryFeeRupiah(distanceKm: number, subtotal: number = 0): number {
-  if (subtotal >= 150000) return 0
-
-  if (distanceKm <= 3.0) {
-    return 8000
-  } else if (distanceKm <= 7.0) {
-    // 3 - 7 km: Rp 8.000 + Rp 1.000 per km tambahan
-    const extraKm = distanceKm - 3.0
-    return 8000 + Math.round(extraKm * 1000)
-  } else {
-    // > 7 km: Rp 12.000 + Rp 1.500 per km tambahan
-    const extraKm = distanceKm - 7.0
-    return 14000 + Math.round(extraKm * 1500)
-  }
-}
-
 export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [branches, setBranches] = useState<Branch[]>([])
-  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null)
-  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number; address: string } | null>(() => {
-    const saved = localStorage.getItem('olga_user_location')
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch {
-        // ignore
-      }
-    }
-    // Default location: Manahan, Surakarta
-    return {
-      lat: -7.5532,
-      lon: 110.8061,
-      address: 'Kawasan Manahan, Banjarsari, Kota Surakarta',
-    }
-  })
-  const [nearestBranch, setNearestBranch] = useState<Branch | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { location } = useLocation()
 
-  // Load branches
-  useEffect(() => {
-    customerApi.getBranches().then((list) => {
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [selectedBranch, setSelectedBranchState] = useState<Branch | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const [quotes, setQuotes] = useState<Record<string, BranchDeliveryQuote>>({})
+  const [nearestBranchId, setNearestBranchId] = useState<string | null>(null)
+  const [quotesLoading, setQuotesLoading] = useState(false)
+  const [quotesError, setQuotesError] = useState<string | null>(null)
+
+  // The subtotal the current quotes were priced for, so the free-delivery
+  // threshold re-evaluates when the basket crosses it.
+  const lastSubtotalRef = useRef<number>(0)
+
+  const loadBranches = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const list = await customerApi.getBranches()
       setBranches(list)
-      const savedSlug = localStorage.getItem('olga_selected_branch_slug') || 'kerten'
-      const found = list.find((b) => b.slug === savedSlug) || list[0]
-      setSelectedBranch(found || null)
+
+      const savedSlug = localStorage.getItem(SELECTED_BRANCH_KEY)
+      const restored = savedSlug ? list.find((b) => b.slug === savedSlug) : undefined
+      // Prefer an outlet that can actually take an order right now.
+      setSelectedBranchState(restored ?? list.find((b) => b.is_open_now) ?? list[0] ?? null)
+    } catch (err) {
+      setError(errorMessage(err, 'Gagal memuat daftar outlet.'))
+    } finally {
       setLoading(false)
-    }).catch((err) => {
-      console.error('Failed to load branches', err)
-      setLoading(false)
-    })
+    }
   }, [])
 
-  // Recalculate nearest branch when location or branches change
   useEffect(() => {
-    if (branches.length > 0 && userLocation) {
-      let minDistance = Infinity
-      let closest: Branch | null = null
+    void loadBranches()
+  }, [loadBranches])
 
-      branches.forEach((b) => {
-        const dist = calculateDistanceKm(userLocation.lat, userLocation.lon, b.latitude, b.longitude)
-        if (dist < minDistance) {
-          minDistance = dist
-          closest = b
-        }
-      })
-
-      if (closest) {
-        setNearestBranch(closest)
+  const refreshQuotes = useCallback(
+    async (subtotal: number) => {
+      if (!location) {
+        setQuotes({})
+        setNearestBranchId(null)
+        return
       }
-    }
-  }, [branches, userLocation])
 
-  const selectBranchBySlug = (slug: string) => {
-    const found = branches.find((b) => b.slug === slug)
-    if (found) {
-      setSelectedBranch(found)
-      localStorage.setItem('olga_selected_branch_slug', found.slug)
-    }
-  }
+      lastSubtotalRef.current = subtotal
+      setQuotesLoading(true)
+      setQuotesError(null)
 
-  const handleSetSelectedBranch = (branch: Branch) => {
-    setSelectedBranch(branch)
-    localStorage.setItem('olga_selected_branch_slug', branch.slug)
-  }
+      try {
+        const result = await customerApi.quoteDelivery(location.lat, location.lon, subtotal, 'delivery')
+        const byId: Record<string, BranchDeliveryQuote> = {}
+        for (const q of result.quotes) byId[q.branch_id] = q
 
-  const handleSetUserLocation = (loc: { lat: number; lon: number; address: string }) => {
-    setUserLocation(loc)
-    localStorage.setItem('olga_user_location', JSON.stringify(loc))
-  }
-
-  const getBranchDistanceInfo = (branch: Branch, subtotal: number = 0): DistanceInfo => {
-    const uLat = userLocation?.lat || -7.5532
-    const uLon = userLocation?.lon || 110.8061
-    const distKm = calculateDistanceKm(uLat, uLon, branch.latitude, branch.longitude)
-    const distM = Math.round(distKm * 1000)
-    const estMin = Math.max(10, Math.round(distKm * 3.5 + 8)) // estimasi waktu antar
-    const fee = calculateDeliveryFeeRupiah(distKm, subtotal)
-    const isNear = nearestBranch?.id === branch.id
-
-    return {
-      branchId: branch.id,
-      distanceKm: distKm,
-      distanceMeters: distM,
-      estimatedMinutes: estMin,
-      deliveryFee: fee,
-      isNearest: isNear,
-    }
-  }
-
-  return (
-    <BranchContext.Provider
-      value={{
-        branches,
-        selectedBranch,
-        setSelectedBranch: handleSetSelectedBranch,
-        selectBranchBySlug,
-        userLocation,
-        setUserLocation: handleSetUserLocation,
-        nearestBranch,
-        getBranchDistanceInfo,
-        loading,
-      }}
-    >
-      {children}
-    </BranchContext.Provider>
+        setQuotes(byId)
+        setNearestBranchId(result.nearest_branch_id ?? null)
+      } catch (err) {
+        // Leave any previous quotes in place rather than flashing to zero, and
+        // surface the failure so checkout can block instead of guessing a fee.
+        setQuotesError(errorMessage(err, 'Gagal menghitung ongkos kirim.'))
+      } finally {
+        setQuotesLoading(false)
+      }
+    },
+    [location]
   )
+
+  // Re-price whenever the delivery point moves.
+  useEffect(() => {
+    if (!location) {
+      setQuotes({})
+      setNearestBranchId(null)
+      setQuotesError(null)
+      return
+    }
+    void refreshQuotes(lastSubtotalRef.current)
+  }, [location, refreshQuotes])
+
+  const setSelectedBranch = useCallback((branch: Branch) => {
+    setSelectedBranchState(branch)
+    localStorage.setItem(SELECTED_BRANCH_KEY, branch.slug)
+  }, [])
+
+  const selectBranchBySlug = useCallback(
+    (slug: string) => {
+      const found = branches.find((b) => b.slug === slug)
+      if (found) setSelectedBranch(found)
+    },
+    [branches, setSelectedBranch]
+  )
+
+  const quoteFor = useCallback((branchId: string) => quotes[branchId] ?? null, [quotes])
+
+  const nearestBranch = useMemo(
+    () => branches.find((b) => b.id === nearestBranchId) ?? null,
+    [branches, nearestBranchId]
+  )
+
+  const value = useMemo(
+    () => ({
+      branches,
+      selectedBranch,
+      setSelectedBranch,
+      selectBranchBySlug,
+      quotes,
+      nearestBranch,
+      quoteFor,
+      quotesLoading,
+      quotesError,
+      refreshQuotes,
+      loading,
+      error,
+      reload: loadBranches,
+    }),
+    [
+      branches, selectedBranch, setSelectedBranch, selectBranchBySlug,
+      quotes, nearestBranch, quoteFor, quotesLoading, quotesError, refreshQuotes,
+      loading, error, loadBranches,
+    ]
+  )
+
+  return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>
 }
 
 export const useBranch = () => {

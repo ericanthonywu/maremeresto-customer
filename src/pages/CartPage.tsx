@@ -1,35 +1,37 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useBranch } from '../context/BranchContext'
-import { customerApi } from '../api/client'
+import { useLocation } from '../context/LocationContext'
+import { customerApi, errorMessage, formatRupiah } from '../api/client'
 import { CartItemCard } from '../components/CartItemCard'
+import { LocationModal } from '../components/LocationModal'
 
 export const CartPage: React.FC = () => {
-  const {
-    items,
-    subtotal,
-    deliveryFee,
-    serviceFee,
-    discount,
-    setDiscount,
-    grandTotal,
-    appliedPromo,
-    setAppliedPromo,
-  } = useCart()
-  const { selectedBranch } = useBranch()
+  const { items, subtotal, discount, setDiscount, appliedPromo, setAppliedPromo, clearPromo } = useCart()
+  const { selectedBranch, quoteFor, refreshQuotes, quotesLoading } = useBranch()
+  const { location } = useLocation()
   const navigate = useNavigate()
 
   const [promoInput, setPromoInput] = useState(appliedPromo)
   const [promoMessage, setPromoMessage] = useState<string | null>(null)
   const [promoError, setPromoError] = useState<string | null>(null)
   const [isValidatingPromo, setIsValidatingPromo] = useState(false)
+  const [locationOpen, setLocationOpen] = useState(false)
 
-  const formatRupiah = (val: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
+  const quote = selectedBranch ? quoteFor(selectedBranch.id) : null
+  const deliveryFee = quote?.delivery_fee ?? 0
+  const serviceFee = quote?.service_fee ?? 0
+  const grandTotal = Math.max(0, subtotal + deliveryFee + serviceFee - discount)
+
+  // Re-price whenever the basket total changes, so crossing the free-delivery
+  // threshold is reflected immediately.
+  useEffect(() => {
+    if (location && subtotal > 0) void refreshQuotes(subtotal)
+  }, [location, subtotal, refreshQuotes])
 
   const handleApplyPromo = async (codeToUse?: string) => {
-    const code = (codeToUse || promoInput).trim().toUpperCase()
+    const code = (codeToUse ?? promoInput).trim().toUpperCase()
     if (!code) return
 
     setIsValidatingPromo(true)
@@ -42,140 +44,132 @@ export const CartPage: React.FC = () => {
       setAppliedPromo(resp.code)
       setPromoInput(resp.code)
       setPromoMessage(resp.message)
-    } catch (err: any) {
-      setPromoError(err.response?.data?.error || 'Kode promo tidak valid atau syarat minimal belum terpenuhi.')
+    } catch (err) {
+      setPromoError(errorMessage(err, 'Kode promo tidak dapat digunakan.'))
     } finally {
       setIsValidatingPromo(false)
     }
   }
 
   const handleRemovePromo = () => {
-    setDiscount(0)
-    setAppliedPromo('')
+    clearPromo()
     setPromoInput('')
     setPromoMessage(null)
     setPromoError(null)
   }
 
+  const belowMinimum = quote ? subtotal < quote.min_order_amount : false
+
   return (
     <div className="min-h-screen bg-[#fbf9f6] pb-24 lg:pb-16 pt-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        {/* Back Link & Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Link
               to="/menu"
-              className="w-10 h-10 rounded-2xl bg-white border border-stone-200 text-stone-700 hover:bg-stone-100 flex items-center justify-center shadow-sm"
+              aria-label="Kembali ke menu"
+              className="w-10 h-10 rounded-2xl bg-white border border-stone-200 text-stone-700 hover:bg-stone-100 flex items-center justify-center shadow-sm shrink-0"
             >
-              <i className="fa-solid fa-arrow-left text-sm"></i>
+              <i className="fa-solid fa-arrow-left text-sm" aria-hidden="true"></i>
             </Link>
-            <div>
-              <h1 className="font-serif text-2xl font-bold text-stone-900">Keranjang Pesanan</h1>
-              <p className="text-xs text-stone-500">
-                Outlet: <span className="font-bold text-stone-800">{selectedBranch?.name}</span>
-              </p>
+            <div className="min-w-0">
+              <h1 className="font-serif text-2xl font-bold text-stone-900">Keranjang</h1>
+              {selectedBranch && (
+                <p className="text-xs text-stone-500 truncate">
+                  Outlet: <span className="font-bold text-stone-800">{selectedBranch.name}</span>
+                </p>
+              )}
             </div>
           </div>
 
-          <Link
-            to="/branches"
-            className="text-xs text-brand-600 hover:underline font-bold"
-          >
-            Ganti Outlet
+          <Link to="/branches" className="text-xs text-brand-600 hover:underline font-bold shrink-0">
+            Ganti outlet
           </Link>
         </div>
 
         {items.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 shadow-sm space-y-4">
-            <div className="w-16 h-16 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center mx-auto text-2xl">
+            <div
+              className="w-16 h-16 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center mx-auto text-2xl"
+              aria-hidden="true"
+            >
               <i className="fa-solid fa-cart-shopping"></i>
             </div>
-            <h3 className="font-serif font-bold text-lg text-stone-900">Keranjang Anda Masih Kosong</h3>
+            <h3 className="font-serif font-bold text-lg text-stone-900">Keranjang Anda kosong</h3>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
-              Yuk jelajahi racikan kopi segar dan hidangan istimewa kami di menu!
+              Jelajahi menu kami dan tambahkan pesanan pertama Anda.
             </p>
             <Link
               to="/menu"
               className="inline-flex items-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl text-xs font-bold shadow-md transition-all"
             >
-              <span>Lihat Daftar Menu</span>
-              <i className="fa-solid fa-arrow-right text-xs"></i>
+              <span>Lihat daftar menu</span>
+              <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Items List */}
             <div className="lg:col-span-2 space-y-3">
               {items.map((item, index) => (
                 <CartItemCard key={item.id} item={item} index={index} />
               ))}
             </div>
 
-            {/* Right: Voucher & Summary */}
             <div className="space-y-4">
-              {/* Promo Code Card */}
+              {/* Promo. The quick-pick buttons were hardcoded promo codes; the
+                  customer now types a code, which the server validates. */}
               <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
                 <div className="flex items-center gap-2 text-stone-900 font-bold text-xs">
-                  <i className="fa-solid fa-ticket text-brand-600"></i>
-                  <span>Gunakan Voucher Promo</span>
+                  <i className="fa-solid fa-ticket text-brand-600" aria-hidden="true"></i>
+                  <span>Kode promo</span>
                 </div>
 
                 <div className="flex gap-2">
+                  <label htmlFor="promo-code" className="sr-only">
+                    Kode promo
+                  </label>
                   <input
+                    id="promo-code"
                     type="text"
                     value={promoInput}
                     onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                    placeholder="Ketik kode promo"
-                    className="flex-1 px-3 py-2 text-xs bg-stone-50 border border-stone-300 rounded-xl uppercase font-bold text-stone-900 focus:outline-none focus:border-brand-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        void handleApplyPromo()
+                      }
+                    }}
+                    disabled={Boolean(appliedPromo)}
+                    maxLength={50}
+                    placeholder="Masukkan kode"
+                    className="flex-1 min-w-0 px-3 py-2 text-xs bg-stone-50 border border-stone-300 rounded-xl uppercase font-bold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60"
                   />
                   {appliedPromo ? (
                     <button
                       onClick={handleRemovePromo}
-                      className="px-3 py-2 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-bold rounded-xl"
+                      className="px-3 py-2 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-bold rounded-xl shrink-0"
                     >
-                      Batal
+                      Hapus
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleApplyPromo()}
-                      disabled={isValidatingPromo}
-                      className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm"
+                      onClick={() => void handleApplyPromo()}
+                      disabled={isValidatingPromo || !promoInput.trim()}
+                      className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm shrink-0"
                     >
-                      {isValidatingPromo ? '...' : 'Pasang'}
+                      {isValidatingPromo ? '...' : 'Pakai'}
                     </button>
                   )}
                 </div>
 
-                {/* Quick Promo Pills matching prototype */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleApplyPromo('OLGACOFFEE')}
-                    className="text-[10px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-brand-800 border border-amber-200 font-bold transition-all"
-                  >
-                    OLGACOFFEE (-10rb)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyPromo('GRATISONGKIR')}
-                    className="text-[10px] px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold transition-all"
-                  >
-                    GRATISONGKIR (Free Ongkir)
-                  </button>
-                </div>
-
-                {promoMessage && (
-                  <p className="text-xs text-emerald-600 font-semibold">{promoMessage}</p>
-                )}
-                {promoError && (
-                  <p className="text-xs text-red-600 font-semibold">{promoError}</p>
-                )}
+                {promoMessage && <p className="text-xs text-emerald-600 font-semibold">{promoMessage}</p>}
+                {promoError && <p className="text-xs text-red-600 font-semibold">{promoError}</p>}
               </div>
 
-              {/* Price Breakdown */}
+              {/* Price breakdown */}
               <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3 text-xs">
                 <h4 className="font-serif font-bold text-sm text-stone-900 pb-2 border-b border-stone-100">
-                  Rincian Biaya
+                  Rincian biaya
                 </h4>
 
                 <div className="flex justify-between text-stone-600">
@@ -183,40 +177,65 @@ export const CartPage: React.FC = () => {
                   <span className="font-bold text-stone-900">{formatRupiah(subtotal)}</span>
                 </div>
 
-                <div className="flex justify-between text-stone-600">
-                  <span>Ongkos Kirim</span>
-                  <span className="font-bold text-stone-900">{formatRupiah(deliveryFee)}</span>
-                </div>
-
-                <div className="flex justify-between text-stone-600">
-                  <span>Biaya Layanan & Pengemasan</span>
-                  <span className="font-bold text-stone-900">{formatRupiah(serviceFee)}</span>
-                </div>
+                {location && quote ? (
+                  <>
+                    <div className="flex justify-between text-stone-600">
+                      <span>Ongkir ({quote.distance_km} km)</span>
+                      <span className="font-bold text-stone-900">
+                        {quotesLoading ? '…' : deliveryFee === 0 ? 'Gratis' : formatRupiah(deliveryFee)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-stone-600">
+                      <span>Biaya layanan</span>
+                      <span className="font-bold text-stone-900">{formatRupiah(serviceFee)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setLocationOpen(true)}
+                    className="w-full text-left p-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 hover:bg-stone-100 transition-colors flex items-center gap-2"
+                  >
+                    <i className="fa-solid fa-location-crosshairs text-brand-600 shrink-0" aria-hidden="true"></i>
+                    <span className="text-[11px] text-stone-600 font-semibold">
+                      Tentukan alamat untuk menghitung ongkir
+                    </span>
+                  </button>
+                )}
 
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-bold">
-                    <span>Diskon Promo ({appliedPromo})</span>
+                    <span>Diskon ({appliedPromo})</span>
                     <span>-{formatRupiah(discount)}</span>
                   </div>
                 )}
 
                 <div className="pt-3 border-t border-stone-200 flex justify-between items-center text-sm font-extrabold text-stone-900">
-                  <span>Total Pembayaran</span>
+                  <span>{location && quote ? 'Total' : 'Total sementara'}</span>
                   <span className="text-brand-700 text-base">{formatRupiah(grandTotal)}</span>
                 </div>
 
+                {belowMinimum && quote && (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">
+                    Minimum order outlet ini {formatRupiah(quote.min_order_amount)}. Tambah{' '}
+                    {formatRupiah(quote.min_order_amount - subtotal)} lagi untuk melanjutkan.
+                  </p>
+                )}
+
                 <button
                   onClick={() => navigate('/checkout')}
-                  className="w-full py-3.5 mt-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs"
+                  disabled={belowMinimum}
+                  className="w-full py-3.5 mt-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs"
                 >
-                  <span>Lanjut ke Kasir & Pembayaran</span>
-                  <i className="fa-solid fa-arrow-right text-xs"></i>
+                  <span>Lanjut ke kasir</span>
+                  <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
                 </button>
               </div>
             </div>
           </div>
         )}
       </div>
+
+      <LocationModal isOpen={locationOpen} onClose={() => setLocationOpen(false)} />
     </div>
   )
 }

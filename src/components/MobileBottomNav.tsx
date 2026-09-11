@@ -6,7 +6,7 @@ export const MobileBottomNav: React.FC = () => {
   const location = useLocation()
   const { totalCount } = useCart()
 
-  const tabs = [
+  const tabs: Array<{ label: string; path: string; icon: string; badge?: number }> = [
     {
       label: 'Cabang',
       path: '/branches',
@@ -27,7 +27,6 @@ export const MobileBottomNav: React.FC = () => {
       label: 'Lacak',
       path: '/tracking',
       icon: 'fa-solid fa-location-crosshairs',
-      dot: true,
     },
   ]
 
@@ -40,19 +39,17 @@ export const MobileBottomNav: React.FC = () => {
             <Link
               key={tab.path}
               to={tab.path}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center justify-center py-1 relative transition-colors ${
                 isActive ? 'text-brand-600 font-bold' : 'text-stone-500 hover:text-stone-800'
               }`}
             >
               <div className="relative mb-0.5">
-                <i className={`${tab.icon} text-lg`}></i>
+                <i className={`${tab.icon} text-lg`} aria-hidden="true"></i>
                 {tab.badge !== undefined && (
                   <span className="absolute -top-1 -right-2 bg-brand-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow">
                     {tab.badge}
                   </span>
-                )}
-                {tab.dot && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow"></span>
                 )}
               </div>
               <span>{tab.label}</span>

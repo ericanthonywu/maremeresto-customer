@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { CartItem } from '../types'
 import { useCart } from '../context/CartContext'
+import { formatRupiah } from '../api/client'
 
 interface CartItemCardProps {
   item: CartItem
@@ -11,9 +12,6 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({ item, index }) => {
   const { changeQuantity, removeFromCart, updateNotes } = useCart()
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [notesText, setNotesText] = useState(item.notes || '')
-
-  const formatRupiah = (val: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
 
   const handleSaveNotes = () => {
     updateNotes(index, notesText)
@@ -73,6 +71,7 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({ item, index }) => {
             value={notesText}
             onChange={(e) => setNotesText(e.target.value)}
             placeholder="mis. Kurang manis, dipanaskan..."
+            maxLength={200}
             className="flex-1 px-3 py-1.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500"
           />
           <button

@@ -1,19 +1,18 @@
 import React from 'react'
 import type { MenuItem } from '../types'
 import { useCart } from '../context/CartContext'
+import { formatRupiah } from '../api/client'
 
 interface MenuItemCardProps {
   item: MenuItem
+  /** A closed outlet cannot take orders, so adding to the basket is blocked. */
+  outletOpen?: boolean
 }
 
-export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item }) => {
+export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, outletOpen = true }) => {
   const { addToCart } = useCart()
 
-  const formattedPrice = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(item.price)
+  const canOrder = item.is_available && outletOpen
 
   return (
     <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
@@ -25,7 +24,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item }) => {
           }`}
         >
           {item.image_url ? (
-            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover rounded-xl" />
+            <img src={item.image_url} alt="" loading="lazy" className="w-full h-full object-cover rounded-xl" />
           ) : (
             <i className={`fa-solid ${item.icon || 'fa-mug-hot'} text-brand-700`}></i>
           )}
@@ -49,18 +48,19 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item }) => {
 
       {/* Price & Add button */}
       <div className="flex items-center justify-between pt-2 border-t border-stone-100">
-        <span className="font-extrabold text-sm text-brand-700">{formattedPrice}</span>
-        {item.is_available ? (
+        <span className="font-extrabold text-sm text-brand-700">{formatRupiah(item.price)}</span>
+        {canOrder ? (
           <button
             onClick={() => addToCart(item)}
+            aria-label={`Tambah ${item.name} ke keranjang`}
             className="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
           >
-            <i className="fa-solid fa-plus text-[10px]"></i>
+            <i className="fa-solid fa-plus text-[10px]" aria-hidden="true"></i>
             <span>Tambah</span>
           </button>
         ) : (
           <span className="px-2.5 py-1 bg-stone-100 text-stone-400 rounded-xl text-xs font-semibold">
-            Habis
+            {item.is_available ? 'Outlet tutup' : 'Habis'}
           </span>
         )}
       </div>

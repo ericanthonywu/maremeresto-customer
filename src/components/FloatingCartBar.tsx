@@ -1,14 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import { formatRupiah } from '../api/client'
 
 export const FloatingCartBar: React.FC = () => {
-  const { totalCount, grandTotal } = useCart()
+  const { totalCount, subtotal } = useCart()
 
   if (totalCount === 0) return null
-
-  const formatRupiah = (val: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
 
   return (
     <div className="lg:hidden fixed bottom-16 inset-x-0 px-4 z-30 max-w-md mx-auto pointer-events-none">
@@ -24,13 +22,15 @@ export const FloatingCartBar: React.FC = () => {
             </span>
           </div>
           <div className="text-left">
-            <p className="text-[11px] text-amber-200 leading-tight">{totalCount} Menu Dipilih</p>
-            <p className="font-extrabold text-sm">{formatRupiah(grandTotal)}</p>
+            <p className="text-[11px] text-amber-200 leading-tight">
+              {totalCount} menu · subtotal
+            </p>
+            <p className="font-extrabold text-sm">{formatRupiah(subtotal)}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 text-xs font-bold bg-white/10 px-3 py-1.5 rounded-xl border border-white/15">
-          <span>Lihat Keranjang</span>
+          <span>Lihat keranjang</span>
           <i className="fa-solid fa-chevron-right text-[10px]"></i>
         </div>
       </Link>
