@@ -54,7 +54,7 @@ export const AppHeader: React.FC = () => {
               <i className="fa-solid fa-mug-hot text-xl"></i>
             </div>
             <div>
-              <span className="font-serif font-bold text-lg text-stone-900 leading-none block">Cafe Olga</span>
+              <span className="font-serif font-bold text-lg text-stone-900 leading-none block">Mareme Resto</span>
               <span className="text-[11px] text-brand-600 font-medium tracking-wide">Online Ordering</span>
             </div>
           </Link>

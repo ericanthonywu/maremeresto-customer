@@ -16,9 +16,9 @@ export default defineConfig(({ mode }) => {
         includeAssets: ['favicon.svg'],
         manifest: {
           id: '/cafe-olga',
-          name: 'Cafe Olga — Online Ordering',
-          short_name: 'Cafe Olga',
-          description: 'Pesan kopi & makanan hangat langsung dari Cafe Olga',
+          name: 'Mareme Resto — Online Ordering',
+          short_name: 'Mareme Resto',
+          description: 'Pesan kopi & makanan hangat langsung dari Mareme Resto',
           theme_color: '#c87028',
           background_color: '#fbf9f6',
           display: 'standalone',
