@@ -17,6 +17,7 @@ export interface Branch {
   /** Today's schedule, e.g. "08.00–22.00". Empty when none is configured. */
   today_hours?: string
   whatsapp_number?: string
+  halal_certificate_id?: string
 }
 
 export interface Category {

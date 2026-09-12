@@ -8,6 +8,7 @@ import { CategoryTabs } from '../components/CategoryTabs'
 import { MenuItemCard } from '../components/MenuItemCard'
 import { StickyCartSidebar } from '../components/StickyCartSidebar'
 import { FloatingCartBar } from '../components/FloatingCartBar'
+import { HalalCertificateBadge } from '../components/HalalCertificateBadge'
 
 export const MenuPage: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -129,6 +130,7 @@ export const MenuPage: React.FC = () => {
               {selectedBranch?.name ?? (branchesLoading ? 'Memuat outlet...' : 'Pilih outlet')}
             </h1>
             <p className="text-xs text-stone-500 max-w-xl">{selectedBranch?.address ?? ''}</p>
+            {selectedBranch && <HalalCertificateBadge certificateId={selectedBranch.halal_certificate_id} />}
           </div>
 
           <div className="flex items-center gap-3 shrink-0">

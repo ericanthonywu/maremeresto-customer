@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Branch } from '../types'
 import { useBranch } from '../context/BranchContext'
 import { formatRupiah } from '../api/client'
+import { HalalCertificateBadge } from './HalalCertificateBadge'
 
 interface BranchCardProps {
   branch: Branch
@@ -104,6 +105,8 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
         </div>
 
         <div className="p-5 space-y-4">
+          <HalalCertificateBadge certificateId={branch.halal_certificate_id} compact />
+
           <div className="grid grid-cols-3 gap-2 py-2 border-y border-stone-100 text-center text-xs">
             <div>
               <span className="text-stone-400 block text-[10px]">Jarak</span>
