@@ -95,8 +95,9 @@ export const CheckoutPage: React.FC = () => {
       return `Alamat Anda ${quote.distance_km} km dari ${activeBranch.name}, di luar jangkauan ${quote.max_radius_km} km. Pilih outlet lain atau ambil sendiri.`
     }
     if (orderType === 'scheduled' && !scheduledTime) return 'Pilih jam pengantaran.'
+	if (isDelivery && !deliveryNotes.trim()) return 'Catatan untuk kurir wajib diisi.'
     return null
-  }, [items.length, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime])
+  }, [items.length, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime, deliveryNotes])
 
   const handlePhoneBlur = () => {
     if (!phone.trim()) return
@@ -105,7 +106,7 @@ export const CheckoutPage: React.FC = () => {
       setPhone(res.normalized)
       setPhoneError(null)
     } else {
-      setPhoneError(res.error ?? 'Format nomor telepon tidak valid')
+      setPhoneError(res.error ?? 'Format WhatsApp tidak valid')
     }
   }
 
@@ -116,7 +117,7 @@ export const CheckoutPage: React.FC = () => {
 
       const phoneCheck = normalizePhone(phone)
       if (!phoneCheck.valid) {
-        setPhoneError(phoneCheck.error ?? 'Format nomor telepon tidak valid')
+        setPhoneError(phoneCheck.error ?? 'Format WhatsApp tidak valid')
         return
       }
       if (!name.trim()) {
@@ -127,6 +128,10 @@ export const CheckoutPage: React.FC = () => {
         setErrorMsg('Silakan tentukan alamat pengantaran.')
         return
       }
+	  if (isDelivery && !deliveryNotes.trim()) {
+		setErrorMsg('Catatan untuk kurir wajib diisi.')
+		return
+	  }
       if (blocker) {
         setErrorMsg(blocker)
         return
@@ -200,7 +205,7 @@ export const CheckoutPage: React.FC = () => {
   )
 
   return (
-    <div className="min-h-screen bg-[#fbf9f6] pb-24 lg:pb-16 pt-6">
+    <div className="min-h-screen bg-brand-50/40 pb-24 lg:pb-16 pt-6 transition-colors duration-300">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex items-center gap-3">
           <Link
@@ -332,7 +337,7 @@ export const CheckoutPage: React.FC = () => {
                     maxLength={300}
                     value={addressDetail}
                     onChange={(e) => setAddressDetail(e.target.value)}
-                    placeholder="mis. No. rumah, lantai/unit, warna pagar (opsional)"
+                    placeholder="Contoh: ketuk 3x, nomor 14a"
                     className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
                   />
                   <p className="text-[10px] text-stone-400 mt-1">
@@ -342,15 +347,16 @@ export const CheckoutPage: React.FC = () => {
 
                 <div>
                   <label htmlFor="notes" className="block text-xs font-semibold text-stone-700 mb-1">
-                    Catatan untuk kurir (opsional)
+                    Catatan untuk kurir <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="notes"
                     type="text"
+				required
                     maxLength={300}
                     value={deliveryNotes}
                     onChange={(e) => setDeliveryNotes(e.target.value)}
-                    placeholder="mis. Pagar hitam samping masjid, titip sekuriti"
+                    placeholder="Contoh: pagar hitam, titip ke sekuriti"
                     className="w-full px-4 py-2 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500"
                   />
                 </div>
@@ -501,7 +507,7 @@ export const CheckoutPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1 gap-2">
                   <label htmlFor="cust-phone" className="block text-xs font-semibold text-stone-700">
-                    Nomor WhatsApp / HP *
+                    WhatsApp *
                   </label>
                   <span className="text-[10px] text-stone-400 font-mono">08... atau +628...</span>
                 </div>
@@ -536,61 +542,6 @@ export const CheckoutPage: React.FC = () => {
                 <p className="text-[10px] text-stone-400 mt-1">
                   Nomor ini dipakai untuk melacak pesanan dan dihubungi kurir.
                 </p>
-              </div>
-            </div>
-
-            {/* ---- Payment method via Midtrans Snap ---- */}
-            <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <i className="fa-solid fa-shield-halved text-brand-600 text-base" aria-hidden="true"></i>
-                  <h3 className="font-serif font-bold text-sm text-stone-900">Pembayaran Online</h3>
-                </div>
-                <span className="text-[11px] font-bold text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200">
-                  Midtrans Snap
-                </span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#faf8f5] border border-stone-200/80 space-y-3">
-                <p className="text-xs text-stone-700 leading-relaxed">
-                  Pesanan Anda akan dialihkan ke gerbang pembayaran aman <strong>Midtrans Snap</strong>. Anda dapat memilih metode pembayaran langsung di halaman Midtrans:
-                </p>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-800 font-medium shadow-sm">
-                    <i className="fa-solid fa-qrcode text-brand-600 text-base shrink-0" aria-hidden="true"></i>
-                    <div className="min-w-0">
-                      <span className="block font-bold text-[11px]">QRIS</span>
-                      <span className="block text-[9px] text-stone-400 truncate">Semua E-Wallet / M-Banking</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-800 font-medium shadow-sm">
-                    <i className="fa-solid fa-wallet text-blue-500 text-base shrink-0" aria-hidden="true"></i>
-                    <div className="min-w-0">
-                      <span className="block font-bold text-[11px]">GoPay / Shopee</span>
-                      <span className="block text-[9px] text-stone-400 truncate">App Redirection</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-800 font-medium shadow-sm">
-                    <i className="fa-solid fa-building-columns text-emerald-600 text-base shrink-0" aria-hidden="true"></i>
-                    <div className="min-w-0">
-                      <span className="block font-bold text-[11px]">Virtual Account</span>
-                      <span className="block text-[9px] text-stone-400 truncate">BCA, Mandiri, BNI, BRI</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-800 font-medium shadow-sm">
-                    <i className="fa-solid fa-credit-card text-purple-600 text-base shrink-0" aria-hidden="true"></i>
-                    <div className="min-w-0">
-                      <span className="block font-bold text-[11px]">Kartu Kredit/Debit</span>
-                      <span className="block text-[9px] text-stone-400 truncate">Visa / Mastercard</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-[10px] text-stone-500 pt-1">
-                  <i className="fa-solid fa-lock text-stone-400" aria-hidden="true"></i>
-                  <span>Pembayaran terverifikasi otomatis. Pesanan langsung masuk ke outlet setelah pembayaran berhasil.</span>
-                </div>
               </div>
             </div>
 

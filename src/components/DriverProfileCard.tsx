@@ -51,7 +51,7 @@ export const DriverProfileCard: React.FC<DriverProfileCardProps> = ({
       </div>
 
       {driverPhone && waNumber && (
-        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-stone-100">
+        <div className="pt-3 border-t border-stone-100">
           <a
             href={`https://wa.me/${waNumber}`}
             target="_blank"
@@ -62,13 +62,6 @@ export const DriverProfileCard: React.FC<DriverProfileCardProps> = ({
             <span>WhatsApp</span>
           </a>
 
-          <a
-            href={`tel:${driverPhone}`}
-            className="py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold flex items-center justify-center gap-2 transition-colors active:scale-95"
-          >
-            <i className="fa-solid fa-phone text-xs" aria-hidden="true"></i>
-            <span>Telepon</span>
-          </a>
         </div>
       )}
     </div>

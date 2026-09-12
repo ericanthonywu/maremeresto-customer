@@ -18,7 +18,7 @@ export const SelectBranchPage: React.FC = () => {
   }, [location, hasBeenPrompted, permission, requestGps])
 
   return (
-    <div className="min-h-screen bg-[#fbf9f6] pb-24 lg:pb-16">
+    <div className="min-h-screen bg-brand-50/40 pb-24 lg:pb-16 transition-colors duration-300">
       <section className="hero-bg text-white py-12 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden">
         <div className="max-w-3xl mx-auto space-y-4 relative z-10">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-amber-200 border border-white/15 text-xs font-semibold">

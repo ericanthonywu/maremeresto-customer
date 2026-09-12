@@ -6,7 +6,7 @@ export interface Branch {
   phone: string
   latitude: number
   longitude: number
-  gradient_theme: 'brand' | 'emerald' | 'indigo'
+  gradient_theme: 'brand' | 'emerald' | 'indigo' | 'shopee' | 'gojek' | 'gopay'
   icon: string
   facility_tags: string[]
   rating: number
@@ -60,7 +60,7 @@ export interface Order {
   branch_id: string
   branch?: Branch
   order_type: 'delivery' | 'pickup' | 'scheduled'
-  status: 'pending' | 'accepted' | 'preparing' | 'ready' | 'on_the_way' | 'delivered' | 'completed' | 'rejected' | 'cancelled'
+  status: 'pending' | 'accepted' | 'preparing' | 'ready' | 'on_the_way' | 'picked_up' | 'delivered' | 'completed' | 'rejected' | 'cancelled'
   customer_name: string
   customer_phone: string
   delivery_address?: string
@@ -79,6 +79,13 @@ export interface Order {
   driver_plate?: string
   driver_rating?: number
   driver_assigned_at?: string
+  rejection_reason?: string
+  feedback?: {
+    rating: number
+    comment?: string
+    created_at: string
+    updated_at: string
+  }
   version: number
   items?: OrderItem[]
   payment?: Payment

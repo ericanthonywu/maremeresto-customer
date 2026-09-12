@@ -32,6 +32,25 @@ const THEMES: Record<Branch['gradient_theme'], { gradient: string; btn: string; 
     panel: 'bg-brand-50/70 border-brand-100',
     tag: 'bg-amber-50 text-amber-800 border-amber-200',
   },
+  // Distinct outlet palettes: Shopee orange, Gojek green, and GoPay blue.
+  shopee: {
+    gradient: 'from-orange-700 via-orange-600 to-red-600',
+    btn: 'bg-orange-600 hover:bg-orange-700',
+    panel: 'bg-orange-50/80 border-orange-100',
+    tag: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
+  gojek: {
+    gradient: 'from-green-800 via-emerald-700 to-teal-700',
+    btn: 'bg-green-700 hover:bg-green-800',
+    panel: 'bg-green-50/80 border-green-100',
+    tag: 'bg-green-50 text-green-700 border-green-200',
+  },
+  gopay: {
+    gradient: 'from-sky-800 via-blue-700 to-indigo-700',
+    btn: 'bg-blue-600 hover:bg-blue-700',
+    panel: 'bg-blue-50/80 border-blue-100',
+    tag: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
 }
 
 export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }) => {

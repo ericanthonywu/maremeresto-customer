@@ -95,7 +95,7 @@ export const OrderSuccessPage: React.FC = () => {
   const isPaid = payment?.payment_status === 'settlement' || (order && order.status !== 'pending')
 
   return (
-    <div className="min-h-screen bg-[#fbf9f6] pb-24 pt-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-brand-50/40 pb-24 pt-8 px-4 sm:px-6 transition-colors duration-300">
       <div className="max-w-xl mx-auto space-y-6 text-center">
         {loading ? (
           <div className="py-20">
@@ -229,7 +229,7 @@ export const OrderSuccessPage: React.FC = () => {
                   <span className="font-bold text-stone-900 text-right">{order.customer_name}</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span>Telepon</span>
+                  <span>WhatsApp</span>
                   <span className="font-mono font-bold text-stone-900 text-right">{order.customer_phone}</span>
                 </div>
               </div>

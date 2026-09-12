@@ -86,7 +86,7 @@ export const MenuPage: React.FC = () => {
   const isBusy = loading || branchesLoading
 
   return (
-    <div className="min-h-screen bg-[#fbf9f6] pb-28 lg:pb-16">
+    <div className="min-h-screen bg-brand-50/40 pb-28 lg:pb-16 transition-colors duration-300">
       {toastMessage && (
         <div className="fixed top-16 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
           <div

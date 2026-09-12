@@ -43,8 +43,8 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [quotesLoading, setQuotesLoading] = useState(false)
   const [quotesError, setQuotesError] = useState<string | null>(null)
 
-  // The subtotal the current quotes were priced for, so the free-delivery
-  // threshold re-evaluates when the basket crosses it.
+  // Remember the subtotal used for the latest quote so a basket change is
+  // re-priced against the server's fixed distance policy.
   const lastSubtotalRef = useRef<number>(0)
 
   const loadBranches = useCallback(async () => {
@@ -68,6 +68,12 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     void loadBranches()
   }, [loadBranches])
+
+  // Make the chosen outlet's palette global. Components continue using their
+  // semantic `brand-*` classes, while CSS variables switch the actual colour.
+  useEffect(() => {
+    document.documentElement.dataset.branchTheme = selectedBranch?.gradient_theme ?? 'brand'
+  }, [selectedBranch?.gradient_theme])
 
   const refreshQuotes = useCallback(
     async (subtotal: number) => {

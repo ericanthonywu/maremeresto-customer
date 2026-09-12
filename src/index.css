@@ -5,9 +5,85 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Mareme's default warm coffee palette. Every outlet can override these
+     semantic colour tokens without changing any component's Tailwind class. */
+  --brand-50: 253 248 240;
+  --brand-100: 249 237 220;
+  --brand-200: 242 216 180;
+  --brand-300: 233 190 132;
+  --brand-400: 223 160 83;
+  --brand-500: 215 136 51;
+  --brand-600: 200 112 40;
+  --brand-700: 166 85 35;
+  --brand-800: 133 69 34;
+  --brand-900: 109 58 30;
+}
+
+/* Shopee orange: warm and energetic, while the darker steps keep button text
+   and focus states comfortably legible. */
+:root[data-branch-theme='shopee'] {
+  --brand-50: 255 247 237;
+  --brand-100: 255 237 213;
+  --brand-200: 254 215 170;
+  --brand-300: 253 186 116;
+  --brand-400: 251 146 60;
+  --brand-500: 249 115 22;
+  --brand-600: 234 88 12;
+  --brand-700: 194 65 12;
+  --brand-800: 154 52 18;
+  --brand-900: 124 45 18;
+}
+
+/* Gojek green: clear at a glance, but deep enough for accessible actions. */
+:root[data-branch-theme='gojek'],
+:root[data-branch-theme='emerald'] {
+  --brand-50: 240 253 244;
+  --brand-100: 220 252 231;
+  --brand-200: 187 247 208;
+  --brand-300: 134 239 172;
+  --brand-400: 74 222 128;
+  --brand-500: 34 197 94;
+  --brand-600: 22 163 74;
+  --brand-700: 21 128 61;
+  --brand-800: 22 101 52;
+  --brand-900: 20 83 45;
+}
+
+/* GoPay blue: calm, crisp, and visually distinct from the green outlet. */
+:root[data-branch-theme='gopay'] {
+  --brand-50: 239 246 255;
+  --brand-100: 219 234 254;
+  --brand-200: 191 219 254;
+  --brand-300: 147 197 253;
+  --brand-400: 96 165 250;
+  --brand-500: 59 130 246;
+  --brand-600: 37 99 235;
+  --brand-700: 29 78 216;
+  --brand-800: 30 64 175;
+  --brand-900: 30 58 138;
+}
+
+:root[data-branch-theme='indigo'] {
+  --brand-50: 238 242 255;
+  --brand-100: 224 231 255;
+  --brand-200: 199 210 254;
+  --brand-300: 165 180 252;
+  --brand-400: 129 140 248;
+  --brand-500: 99 102 241;
+  --brand-600: 79 70 229;
+  --brand-700: 67 56 202;
+  --brand-800: 55 48 163;
+  --brand-900: 49 46 129;
+}
+
+body {
+  background: rgb(var(--brand-50) / 0.4);
+}
+
 @layer utilities {
   .hero-bg {
-    background: linear-gradient(135deg, #2e1708 0%, #4a2610 45%, #7c4a24 100%);
+    background: linear-gradient(135deg, rgb(var(--brand-900)) 0%, rgb(var(--brand-800)) 45%, rgb(var(--brand-600)) 100%);
   }
   .glass-card {
     background: rgba(255, 255, 255, 0.1);

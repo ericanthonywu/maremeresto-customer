@@ -32,13 +32,18 @@ export const CustomerAuthModal: React.FC = () => {
     setError(null)
 
     if (!phone.trim()) {
-      setError('Silakan masukkan nomor handphone Anda.')
+      setError('Silakan masukkan nomor WhatsApp Anda.')
       return
     }
 
     const check = normalizePhone(phone)
     if (!check.valid) {
-      setError(check.error ?? 'Nomor handphone tidak valid. Contoh: 081234567890')
+      setError(check.error ?? 'Nomor WhatsApp tidak valid. Contoh: 081234567890')
+      return
+    }
+
+    if (name.trim().length < 2) {
+      setError('Nama pemesan wajib diisi (minimal 2 karakter).')
       return
     }
 
@@ -52,9 +57,8 @@ export const CustomerAuthModal: React.FC = () => {
     setError(null)
 
     try {
-      const customerName = name.trim() || 'Pelanggan'
-      await login(normalizedResult.normalized, customerName)
-    } catch (err) {
+      await login(normalizedResult.normalized, name.trim())
+    } catch {
       setError('Gagal masuk. Periksa koneksi internet Anda dan coba lagi.')
       setStep('form')
     } finally {
@@ -77,17 +81,17 @@ export const CustomerAuthModal: React.FC = () => {
                 <i className="fa-solid fa-mug-hot"></i>
               </div>
               <h2 id="auth-modal-title" className="font-serif font-bold text-xl text-stone-900">
-                Selamat Datang di Mareme Resto
+                Selamat Datang di Mareme Group
               </h2>
               <p className="text-xs text-stone-500 leading-relaxed max-w-xs mx-auto">
-                Silakan masukkan nomor handphone / WhatsApp Anda untuk mulai memesan makanan dan minuman favorit.
+                Silakan masukkan WhatsApp Anda untuk mulai memesan makanan dan minuman favorit.
               </p>
             </div>
 
             <form onSubmit={handleProceedToConfirm} className="space-y-4">
               <div className="space-y-1.5 text-left">
                 <label htmlFor="auth-phone" className="block text-xs font-bold text-stone-800">
-                  Nomor Handphone / WhatsApp <span className="text-red-500">*</span>
+                  WhatsApp <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500 text-xs font-bold">
@@ -115,11 +119,13 @@ export const CustomerAuthModal: React.FC = () => {
 
               <div className="space-y-1.5 text-left">
                 <label htmlFor="auth-name" className="block text-xs font-bold text-stone-800">
-                  Nama Pemesan <span className="text-stone-400 font-normal">(opsional)</span>
+                  Nama Pemesan <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="auth-name"
-                  type="text"
+                    type="text"
+                    required
+                    minLength={2}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="mis. Budi Santoso"
@@ -151,16 +157,16 @@ export const CustomerAuthModal: React.FC = () => {
                 <i className="fa-solid fa-shield-halved"></i>
               </div>
               <h2 id="auth-modal-title" className="font-serif font-bold text-xl text-stone-900">
-                Konfirmasi Nomor Handphone
+                Konfirmasi WhatsApp
               </h2>
               <p className="text-xs text-stone-500 leading-relaxed max-w-xs mx-auto">
-                Apakah nomor telepon di bawah sudah benar dan aktif untuk dihubungi kurir?
+                Apakah WhatsApp di bawah sudah benar dan aktif untuk dihubungi kurir?
               </p>
             </div>
 
             <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 text-left space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-stone-500">Nomor Handphone:</span>
+                <span className="text-stone-500">WhatsApp:</span>
                 <span className="font-mono font-bold text-stone-900 text-sm">
                   {normalizedResult?.normalized}
                 </span>

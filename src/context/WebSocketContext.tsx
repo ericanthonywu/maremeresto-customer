@@ -17,6 +17,7 @@ export type OrderUpdate = {
   driver_phone?: string
   driver_vehicle?: string
   driver_plate?: string
+  rejection_reason?: string
 }
 
 interface WebSocketContextType {

@@ -6,6 +6,7 @@ import type { Order } from '../types'
 import { RouteProgressBanner } from '../components/RouteProgressBanner'
 import { OrderTimeline } from '../components/OrderTimeline'
 import { DriverProfileCard } from '../components/DriverProfileCard'
+import { OrderFeedbackCard } from '../components/OrderFeedbackCard'
 
 const CANCEL_WINDOW_MS = 5 * 60 * 1000
 
@@ -71,7 +72,14 @@ export const TrackingPage: React.FC = () => {
     return subscribeToOrder(orderId, (event: string, payload: OrderUpdate) => {
       if (event === 'status_updated' && payload.status) {
         setOrder((prev) =>
-          prev ? { ...prev, status: payload.status as Order['status'], version: payload.version ?? prev.version } : prev
+          prev
+            ? {
+                ...prev,
+                status: payload.status as Order['status'],
+                version: payload.version ?? prev.version,
+                rejection_reason: payload.rejection_reason ?? prev.rejection_reason,
+              }
+            : prev
         )
         if (payload.message) setNotice(payload.message)
       }
@@ -123,10 +131,10 @@ export const TrackingPage: React.FC = () => {
     order &&
     order.order_type !== 'pickup' &&
     Boolean(order.driver_name) &&
-    ['on_the_way', 'delivered', 'completed'].includes(order.status)
+    ['accepted', 'completed', 'ready', 'on_the_way', 'delivered'].includes(order.status)
 
   return (
-    <div className="min-h-screen bg-[#fbf9f6] pb-24 lg:pb-16 pt-6">
+    <div className="min-h-screen bg-brand-50/40 pb-24 lg:pb-16 pt-6 transition-colors duration-300">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -178,6 +186,33 @@ export const TrackingPage: React.FC = () => {
               createdAt={order.created_at}
             />
 
+            {order.branch?.whatsapp_number && (
+              <section className="rounded-3xl border-2 border-emerald-400 bg-emerald-50 p-4 shadow-md shadow-emerald-100" aria-label="Hubungi admin outlet">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-xl text-white shadow-sm" aria-hidden="true">
+                    <i className="fa-brands fa-whatsapp"></i>
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-extrabold text-emerald-950">Hubungi admin outlet</h2>
+                    <p className="mt-0.5 text-xs leading-relaxed text-emerald-900">
+                      Untuk informasi atau koordinasi pesanan, hubungi admin {order.branch.name} melalui WhatsApp.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={`https://wa.me/${order.branch.whatsapp_number.replace(/\D/g, '')}?text=${encodeURIComponent(
+                    `Halo ${order.branch.name}, saya ingin menanyakan pesanan ${order.order_number}.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-md transition-all hover:bg-emerald-700 active:scale-[0.98]"
+                >
+                  <i className="fa-brands fa-whatsapp text-base" aria-hidden="true"></i>
+                  <span>WhatsApp admin {order.branch.name}</span>
+                </a>
+              </section>
+            )}
+
             {showDriverCard && (
               <DriverProfileCard
                 driverName={order.driver_name}
@@ -187,7 +222,14 @@ export const TrackingPage: React.FC = () => {
               />
             )}
 
-            <OrderTimeline status={order.status} orderType={order.order_type} />
+            <OrderTimeline status={order.status} orderType={order.order_type} rejectionReason={order.rejection_reason} />
+
+            {order.status === 'completed' && (
+              <OrderFeedbackCard
+                order={order}
+                onSaved={(feedback) => setOrder((current) => current ? { ...current, feedback } : current)}
+              />
+            )}
 
             {canSelfCancel && (
               <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm flex items-center justify-between gap-4">
@@ -288,19 +330,6 @@ export const TrackingPage: React.FC = () => {
                 <span className="font-bold text-stone-900 text-right">{order.customer_name}</span>
               </div>
 
-              {order.branch?.whatsapp_number && (
-                <a
-                  href={`https://wa.me/${order.branch.whatsapp_number.replace(/\D/g, '')}?text=${encodeURIComponent(
-                    `Halo, saya ingin menanyakan pesanan ${order.order_number}.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs border border-emerald-200 flex items-center justify-center gap-2 transition-all"
-                >
-                  <i className="fa-brands fa-whatsapp text-sm" aria-hidden="true"></i>
-                  <span>Hubungi {order.branch.name}</span>
-                </a>
-              )}
             </div>
           </div>
         ) : orderId ? (

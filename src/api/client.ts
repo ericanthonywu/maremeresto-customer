@@ -83,7 +83,7 @@ export function normalizePhone(rawPhone: string): { valid: boolean; normalized: 
     return {
       valid: false,
       normalized: '',
-      error: 'Nomor harus diawali 08 atau +628 dan terdiri dari 10-14 digit.',
+      error: 'WhatsApp harus diawali 08 atau +628 dan terdiri dari 10-14 digit.',
     }
   }
 
@@ -114,8 +114,18 @@ export interface CreateOrderPayload {
 
 export const customerApi = {
   // ---- Auth -------------------------------------------------------------
-  login: async (phone: string, name?: string) => {
+  login: async (phone: string, name: string) => {
     const res = await api.post('/auth/customer-login', { phone, name })
+    const data = res.data.data
+    if (data?.token) {
+      localStorage.setItem(TOKEN_KEY, data.token)
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+    }
+    return data
+  },
+
+  updateProfile: async (name: string, phone: string) => {
+    const res = await api.put('/auth/customer-profile', { name, phone })
     const data = res.data.data
     if (data?.token) {
       localStorage.setItem(TOKEN_KEY, data.token)
@@ -209,6 +219,11 @@ export const customerApi = {
   cancelOrder: async (id: string): Promise<Order> => {
     const res = await api.post(`/orders/${id}/cancel`)
     return res.data.data
+  },
+
+  submitFeedback: async (id: string, rating: number, comment: string) => {
+    const res = await api.put(`/orders/${id}/feedback`, { rating, comment })
+    return res.data.data as NonNullable<Order['feedback']>
   },
 
   // ---- Payments ---------------------------------------------------------

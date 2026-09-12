@@ -14,7 +14,8 @@ interface CustomerAuthContextType {
   showAuthModal: boolean
   openAuthModal: () => void
   closeAuthModal: () => void
-  login: (phone: string, name?: string) => Promise<void>
+  login: (phone: string, name: string) => Promise<void>
+  updateProfile: (name: string, phone: string) => Promise<void>
   logout: () => void
 }
 
@@ -55,13 +56,18 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [])
 
-  const login = useCallback(async (phone: string, name?: string) => {
+  const login = useCallback(async (phone: string, name: string) => {
     const data = await customerApi.login(phone, name)
     if (data?.user) {
       setUser(data.user)
       setIsLoggedIn(true)
       setShowAuthModal(false)
     }
+  }, [])
+
+  const updateProfile = useCallback(async (name: string, phone: string) => {
+    const data = await customerApi.updateProfile(name, phone)
+    if (data?.user) setUser(data.user)
   }, [])
 
   const logout = useCallback(() => {
@@ -91,9 +97,10 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       openAuthModal,
       closeAuthModal,
       login,
+      updateProfile,
       logout,
     }),
-    [user, isLoggedIn, showAuthModal, openAuthModal, closeAuthModal, login, logout]
+    [user, isLoggedIn, showAuthModal, openAuthModal, closeAuthModal, login, updateProfile, logout]
   )
 
   return <CustomerAuthContext.Provider value={value}>{children}</CustomerAuthContext.Provider>

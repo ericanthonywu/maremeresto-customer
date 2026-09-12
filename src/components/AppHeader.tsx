@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, useLocation as useRouterLocation } from 'react-router-dom'
 import { useBranch } from '../context/BranchContext'
 import { useCart } from '../context/CartContext'
 import { useCustomerAuth } from '../context/CustomerAuthContext'
 import { customerApi } from '../api/client'
 import type { Order } from '../types'
+import { CustomerProfileModal } from './CustomerProfileModal'
 
 /** Statuses that mean an order is still worth surfacing in the header. */
 const ACTIVE_STATUSES: Array<Order['status']> = [
-  'pending', 'accepted', 'preparing', 'ready', 'on_the_way',
+  'pending', 'accepted', 'completed',
 ]
 
 export const AppHeader: React.FC = () => {
@@ -20,6 +21,17 @@ export const AppHeader: React.FC = () => {
   // The "active order" pill is only rendered when the customer really has one.
   // It used to be hardcoded to "#0042" and shown to every visitor.
   const [activeOrder, setActiveOrder] = useState<Order | null>(null)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const accountRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) setAccountOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [])
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -42,7 +54,7 @@ export const AppHeader: React.FC = () => {
       cancelled = true
     }
     // Re-check on navigation so a newly placed order appears without a reload.
-  }, [routerLocation.pathname])
+  }, [routerLocation.pathname, isLoggedIn])
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-sm">
@@ -56,7 +68,7 @@ export const AppHeader: React.FC = () => {
               <i className="fa-solid fa-mug-hot text-xl"></i>
             </div>
             <div>
-              <span className="font-serif font-bold text-lg text-stone-900 leading-none block">Mareme Resto</span>
+              <span className="font-serif font-bold text-lg text-stone-900 leading-none block">Mareme Group</span>
               <span className="text-[11px] text-brand-600 font-medium tracking-wide">Online Ordering</span>
             </div>
           </Link>
@@ -109,19 +121,47 @@ export const AppHeader: React.FC = () => {
           </Link>
 
           {isLoggedIn && user ? (
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm(`Masuk sebagai: ${user.name} (${user.phone})\n\nApakah Anda ingin keluar atau mengganti nomor handphone?`)) {
-                  logout()
-                }
-              }}
-              title={`Akun: ${user.name} (${user.phone}) - Klik untuk ganti nomor`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-all border border-stone-200 shadow-sm"
-            >
-              <i className="fa-solid fa-circle-user text-brand-600 text-sm"></i>
-              <span className="hidden sm:inline max-w-[6rem] truncate">{user.name}</span>
-            </button>
+            <div className="relative" ref={accountRef}>
+              <button
+                type="button"
+                onClick={() => setAccountOpen((open) => !open)}
+                aria-expanded={accountOpen}
+                aria-haspopup="menu"
+                title={`Akun: ${user.name}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-all border border-stone-200 shadow-sm"
+              >
+                <i className="fa-solid fa-circle-user text-brand-600 text-sm"></i>
+                <span className="hidden sm:inline max-w-[6rem] truncate">{user.name}</span>
+                <i className="fa-solid fa-chevron-down text-[9px] text-stone-400" aria-hidden="true"></i>
+              </button>
+
+              {accountOpen && (
+                <div role="menu" className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-stone-200 shadow-xl p-1.5 z-40">
+                  <div className="px-3 py-2 border-b border-stone-100 mb-1">
+                    <span className="block text-xs font-bold text-stone-900 truncate">{user.name}</span>
+                    <span className="block text-[10px] text-stone-500 font-mono truncate">{user.phone}</span>
+                  </div>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setAccountOpen(false); setProfileOpen(true) }}
+                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-stone-700 hover:bg-brand-50 hover:text-brand-700 flex items-center gap-2"
+                  >
+                    <i className="fa-solid fa-pen-to-square w-4 text-center" aria-hidden="true"></i>
+                    Ubah profil
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setAccountOpen(false); logout() }}
+                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-red-700 hover:bg-red-50 flex items-center gap-2"
+                  >
+                    <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center" aria-hidden="true"></i>
+                    Keluar
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <button
               type="button"
@@ -134,6 +174,7 @@ export const AppHeader: React.FC = () => {
           )}
         </div>
       </div>
+      <CustomerProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
     </header>
   )
 }

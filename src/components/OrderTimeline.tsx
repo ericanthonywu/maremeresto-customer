@@ -4,6 +4,7 @@ import type { Order } from '../types'
 interface OrderTimelineProps {
   status: Order['status']
   orderType: Order['order_type']
+  rejectionReason?: string
 }
 
 interface Step {
@@ -13,61 +14,30 @@ interface Step {
   icon: string
 }
 
-/** Delivery has a courier leg; pickup ends at the counter. */
+/** The final operational state means the courier has started the delivery. */
 const DELIVERY_STEPS: Step[] = [
-  { id: 'pending', title: 'Pesanan diterima', desc: 'Outlet memverifikasi antrean pesanan Anda', icon: 'fa-receipt' },
-  { id: 'preparing', title: 'Sedang disiapkan', desc: 'Dapur dan barista menyiapkan pesanan', icon: 'fa-fire-burner' },
-  { id: 'on_the_way', title: 'Dalam perjalanan', desc: 'Kurir membawa pesanan ke alamat Anda', icon: 'fa-motorcycle' },
-  { id: 'delivered', title: 'Pesanan tiba', desc: 'Selamat menikmati!', icon: 'fa-house-circle-check' },
+  { id: 'accepted', title: 'Belum diantar', desc: 'Pesanan sudah diterima outlet dan menunggu diantar.', icon: 'fa-receipt' },
+  { id: 'completed', title: 'Sedang diantar', desc: 'Driver sedang mengantar pesanan Anda dan akan menghubungi lewat WhatsApp saat sudah sampai. Silakan menunggu, lalu selamat menikmati!', icon: 'fa-motorcycle' },
 ]
 
 const PICKUP_STEPS: Step[] = [
-  { id: 'pending', title: 'Pesanan diterima', desc: 'Outlet memverifikasi antrean pesanan Anda', icon: 'fa-receipt' },
-  { id: 'preparing', title: 'Sedang disiapkan', desc: 'Dapur dan barista menyiapkan pesanan', icon: 'fa-fire-burner' },
-  { id: 'ready', title: 'Siap diambil', desc: 'Pesanan menunggu Anda di outlet', icon: 'fa-bag-shopping' },
+  { id: 'accepted', title: 'Pesanan diterima', desc: 'Pesanan Anda sudah diterima outlet.', icon: 'fa-receipt' },
   { id: 'completed', title: 'Selesai', desc: 'Pesanan sudah diambil. Terima kasih!', icon: 'fa-circle-check' },
 ]
 
 function stepIndex(status: Order['status'], orderType: Order['order_type']): number {
-  if (orderType === 'pickup') {
-    switch (status) {
-      case 'pending':
-      case 'accepted':
-        return 0
-      case 'preparing':
-        return 1
-      case 'ready':
-        return 2
-      case 'picked_up' as Order['status']:
-      case 'completed':
-        return 3
-      default:
-        return 0
-    }
-  }
-
-  switch (status) {
-    case 'pending':
-      return 0
-    case 'accepted':
-    case 'preparing':
-    case 'ready':
-      return 1
-    case 'on_the_way':
-      return 2
-    case 'delivered':
-    case 'completed':
-      return 3
-    default:
-      return 0
-  }
+  const isComplete = status === 'completed' || status === 'delivered' || (orderType === 'pickup' && status === 'picked_up')
+  return isComplete ? 1 : 0
 }
 
-export const OrderTimeline: React.FC<OrderTimelineProps> = ({ status, orderType }) => {
+export const OrderTimeline: React.FC<OrderTimelineProps> = ({ status, orderType, rejectionReason }) => {
   const steps = orderType === 'pickup' ? PICKUP_STEPS : DELIVERY_STEPS
   const isStopped = status === 'cancelled' || status === 'rejected'
   const currentIdx = stepIndex(status, orderType)
-  const isFinished = currentIdx === steps.length - 1 && (status === 'completed' || status === 'delivered')
+  // A completed delivery is the admin signal that the courier has departed,
+  // not a claim that the customer has already received the order. Pickup
+  // orders keep their conventional completed state.
+  const isFinished = orderType === 'pickup' && currentIdx === steps.length - 1 && (status === 'completed' || status === 'picked_up')
 
   if (isStopped) {
     return (
@@ -84,6 +54,11 @@ export const OrderTimeline: React.FC<OrderTimelineProps> = ({ status, orderType 
               ? 'Pesanan ini tidak dilanjutkan. Jika Anda sudah membayar, hubungi outlet untuk pengembalian dana.'
               : 'Outlet tidak dapat memproses pesanan ini. Silakan hubungi outlet untuk informasi lebih lanjut.'}
           </p>
+          {status === 'rejected' && rejectionReason && (
+            <p className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
+              Alasan penolakan: {rejectionReason}
+            </p>
+          )}
         </div>
       </div>
     )

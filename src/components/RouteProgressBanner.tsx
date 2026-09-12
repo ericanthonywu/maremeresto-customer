@@ -13,22 +13,23 @@ interface RouteProgressBannerProps {
 /** How far through fulfilment each status is, as a fraction of the bar. */
 const PROGRESS: Partial<Record<Order['status'], number>> = {
   pending: 0.1,
-  accepted: 0.3,
+  accepted: 0.5,
+  // Legacy statuses remain readable, but new orders use accepted → completed.
   preparing: 0.5,
-  ready: 0.7,
-  on_the_way: 0.85,
+  ready: 0.5,
+  on_the_way: 0.5,
   delivered: 1,
   completed: 1,
 }
 
 const HEADLINE: Partial<Record<Order['status'], string>> = {
   pending: 'Menunggu konfirmasi outlet',
-  accepted: 'Pesanan diterima outlet',
-  preparing: 'Pesanan sedang disiapkan',
-  ready: 'Pesanan siap',
-  on_the_way: 'Kurir menuju alamat Anda',
-  delivered: 'Pesanan telah tiba',
-  completed: 'Pesanan selesai',
+  accepted: 'Belum diantar',
+  preparing: 'Belum diantar',
+  ready: 'Belum diantar',
+  on_the_way: 'Belum diantar',
+  delivered: 'Driver sedang mengantar pesanan',
+  completed: 'Driver sedang mengantar pesanan',
   cancelled: 'Pesanan dibatalkan',
   rejected: 'Pesanan ditolak outlet',
 }
@@ -42,6 +43,7 @@ export const RouteProgressBanner: React.FC<RouteProgressBannerProps> = ({
   createdAt,
 }) => {
   const isStopped = status === 'cancelled' || status === 'rejected'
+  const isCompletedPickup = orderType === 'pickup' && (status === 'completed' || status === 'picked_up')
   const progress = isStopped ? 0 : (PROGRESS[status] ?? 0.1)
 
   // Elapsed time since the order was placed. This is a real measurement; the
@@ -55,7 +57,7 @@ export const RouteProgressBanner: React.FC<RouteProgressBannerProps> = ({
     <div className="bg-stone-950 text-white rounded-3xl p-6 shadow-xl overflow-hidden relative border border-stone-800 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          {!isStopped && status !== 'completed' && status !== 'delivered' ? (
+          {!isStopped && !isCompletedPickup ? (
             <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden="true">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -98,15 +100,6 @@ export const RouteProgressBanner: React.FC<RouteProgressBannerProps> = ({
             style={{ width: `${Math.round(progress * 100)}%` }}
           ></div>
         </div>
-
-        {status === 'on_the_way' && orderType !== 'pickup' && (
-          <div className="mt-3 flex justify-center">
-            <div className="drive-anim text-amber-200 flex items-center gap-2 font-bold text-xs bg-brand-700/90 px-3.5 py-1.5 rounded-full border border-amber-400/40 shadow-lg">
-              <i className="fa-solid fa-motorcycle text-sm text-amber-300" aria-hidden="true"></i>
-              <span>Kurir sedang melaju</span>
-            </div>
-          </div>
-        )}
 
         <div className="flex justify-between gap-4 text-xs text-stone-400 pt-3">
           <span className="flex items-center gap-1.5 min-w-0">

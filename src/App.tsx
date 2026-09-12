@@ -38,7 +38,7 @@ export const App: React.FC = () => {
             <CartProvider>
               <WebSocketProvider>
                 <BrowserRouter>
-                  <div className="min-h-screen bg-[#fbf9f6] text-stone-800 font-sans flex flex-col selection:bg-brand-500 selection:text-white">
+                  <div className="min-h-screen bg-brand-50/40 text-stone-800 font-sans flex flex-col selection:bg-brand-500 selection:text-white transition-colors duration-300">
                     <AppHeader />
 
                     <main className="flex-1">
