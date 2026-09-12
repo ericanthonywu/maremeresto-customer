@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Link, useLocation as useRouterLocation } from 'react-router-dom'
 import { useBranch } from '../context/BranchContext'
 import { useCart } from '../context/CartContext'
-import { customerApi, isLoggedIn } from '../api/client'
+import { useCustomerAuth } from '../context/CustomerAuthContext'
+import { customerApi } from '../api/client'
 import type { Order } from '../types'
 
 /** Statuses that mean an order is still worth surfacing in the header. */
@@ -13,6 +14,7 @@ const ACTIVE_STATUSES: Array<Order['status']> = [
 export const AppHeader: React.FC = () => {
   const { selectedBranch } = useBranch()
   const { totalCount } = useCart()
+  const { user, isLoggedIn, openAuthModal, logout } = useCustomerAuth()
   const routerLocation = useRouterLocation()
 
   // The "active order" pill is only rendered when the customer really has one.
@@ -20,7 +22,7 @@ export const AppHeader: React.FC = () => {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null)
 
   useEffect(() => {
-    if (!isLoggedIn()) {
+    if (!isLoggedIn) {
       setActiveOrder(null)
       return
     }
@@ -105,6 +107,31 @@ export const AppHeader: React.FC = () => {
               </span>
             )}
           </Link>
+
+          {isLoggedIn && user ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`Masuk sebagai: ${user.name} (${user.phone})\n\nApakah Anda ingin keluar atau mengganti nomor handphone?`)) {
+                  logout()
+                }
+              }}
+              title={`Akun: ${user.name} (${user.phone}) - Klik untuk ganti nomor`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-all border border-stone-200 shadow-sm"
+            >
+              <i className="fa-solid fa-circle-user text-brand-600 text-sm"></i>
+              <span className="hidden sm:inline max-w-[6rem] truncate">{user.name}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={openAuthModal}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm transition-all"
+            >
+              <i className="fa-solid fa-right-to-bracket text-xs"></i>
+              <span>Masuk</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

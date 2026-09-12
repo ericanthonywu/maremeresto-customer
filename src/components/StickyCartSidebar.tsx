@@ -12,7 +12,6 @@ export const StickyCartSidebar: React.FC = () => {
   // Fees are only shown once the server has priced them for this location.
   const quote = selectedBranch ? quoteFor(selectedBranch.id) : null
   const knownTotal = quote ? subtotal + quote.delivery_fee + quote.service_fee : null
-  const belowMinimum = quote ? subtotal < quote.min_order_amount : false
 
   return (
     <aside className="hidden lg:block w-80 xl:w-96 shrink-0">
@@ -106,13 +105,6 @@ export const StickyCartSidebar: React.FC = () => {
             ) : (
               <p className="text-[11px] text-stone-400 pt-1">
                 Ongkos kirim dihitung setelah Anda menentukan alamat di halaman kasir.
-              </p>
-            )}
-
-            {belowMinimum && quote && (
-              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">
-                Minimum order outlet ini {formatRupiah(quote.min_order_amount)}. Tambah{' '}
-                {formatRupiah(quote.min_order_amount - subtotal)} lagi.
               </p>
             )}
 

@@ -6,9 +6,16 @@ import { formatRupiah } from '../api/client'
 interface CartItemCardProps {
   item: CartItem
   index: number
+  isUnavailable?: boolean
+  unavailableReason?: string
 }
 
-export const CartItemCard: React.FC<CartItemCardProps> = ({ item, index }) => {
+export const CartItemCard: React.FC<CartItemCardProps> = ({
+  item,
+  index,
+  isUnavailable,
+  unavailableReason,
+}) => {
   const { changeQuantity, removeFromCart, updateNotes } = useCart()
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [notesText, setNotesText] = useState(item.notes || '')
@@ -19,7 +26,11 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({ item, index }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200 shadow-sm space-y-3">
+    <div
+      className={`rounded-2xl p-4 sm:p-5 border shadow-sm space-y-3 transition-all ${
+        isUnavailable ? 'bg-red-50/30 border-red-300 ring-1 ring-red-200' : 'bg-white border-stone-200'
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
           <div className={`w-12 h-12 rounded-xl ${item.icon_bg_class} flex items-center justify-center text-xl text-brand-700 shrink-0`}>
@@ -28,6 +39,14 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({ item, index }) => {
           <div className="min-w-0">
             <h4 className="font-bold text-stone-900 text-sm truncate">{item.name}</h4>
             <p className="text-xs text-stone-500">{formatRupiah(item.price)} / porsi</p>
+
+            {/* Out of stock warning */}
+            {isUnavailable && (
+              <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-red-700 bg-red-100/90 px-2.5 py-0.5 rounded-lg border border-red-200">
+                <i className="fa-solid fa-triangle-exclamation text-red-600 text-[10px]"></i>
+                <span>{unavailableReason || 'Stok habis di cabang ini'}</span>
+              </div>
+            )}
 
             {/* Note badge */}
             {item.notes && !isEditingNotes && (

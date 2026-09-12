@@ -5,42 +5,10 @@ import { useBranch } from '../context/BranchContext'
 import { useLocation } from '../context/LocationContext'
 import { customerApi, errorMessage, formatRupiah, normalizePhone, USER_KEY } from '../api/client'
 import { LocationModal } from '../components/LocationModal'
+import { useBranchStock } from '../hooks/useBranchStock'
 import type { Branch, BranchDeliveryQuote } from '../types'
 
 type OrderType = 'delivery' | 'pickup' | 'scheduled'
-type PaymentMethod = 'qris' | 'gopay' | 'shopeepay'
-
-const PAYMENT_OPTIONS: Array<{
-  id: PaymentMethod
-  label: string
-  hint: string
-  icon: string
-  iconClass: string
-  recommended?: boolean
-}> = [
-  {
-    id: 'qris',
-    label: 'QRIS',
-    hint: 'Scan dari semua m-banking & e-wallet',
-    icon: 'fa-qrcode',
-    iconClass: 'bg-white border border-stone-200 text-stone-800',
-    recommended: true,
-  },
-  {
-    id: 'gopay',
-    label: 'GoPay',
-    hint: 'Bayar via aplikasi Gojek atau GoPay',
-    icon: 'fa-wallet',
-    iconClass: 'bg-blue-500 text-white',
-  },
-  {
-    id: 'shopeepay',
-    label: 'ShopeePay',
-    hint: 'Bayar dengan saldo ShopeePay',
-    icon: 'fa-bag-shopping',
-    iconClass: 'bg-orange-500 text-white',
-  },
-]
 
 /** Reads the remembered customer profile, so returning users skip retyping. */
 function storedProfile(): { name: string; phone: string } {
@@ -82,11 +50,10 @@ export const CheckoutPage: React.FC = () => {
   const [name, setName] = useState(profile.name)
   const [phone, setPhone] = useState(profile.phone)
   const [phoneError, setPhoneError] = useState<string | null>(null)
-  // The address defaults to the resolved location, never to an invented street.
-  const [address, setAddress] = useState('')
+  // Optional address detail (house/floor/gate note); main address comes directly from location preview
+  const [addressDetail, setAddressDetail] = useState('')
   const [deliveryNotes, setDeliveryNotes] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('qris')
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStage, setSubmitStage] = useState<string>('')
@@ -95,18 +62,14 @@ export const CheckoutPage: React.FC = () => {
 
   const isDelivery = orderType === 'delivery' || orderType === 'scheduled'
 
-  // Keep the address field in step with the chosen location until the customer
-  // edits it themselves.
-  const [addressTouched, setAddressTouched] = useState(false)
-  useEffect(() => {
-    if (location && !addressTouched) setAddress(location.address)
-  }, [location, addressTouched])
-
   // Auto-select the nearest outlet that can serve this basket.
   const activeBranch: Branch | null = selectedBranch ?? nearestBranch ?? branches[0] ?? null
   useEffect(() => {
     if (!selectedBranch && nearestBranch) setSelectedBranch(nearestBranch)
   }, [selectedBranch, nearestBranch, setSelectedBranch])
+
+  // Validate stock in real-time for the active branch
+  const { unavailableItems, stockMap, isAllAvailable } = useBranchStock(items, activeBranch)
 
   useEffect(() => {
     if (location && subtotal > 0) void refreshQuotes(subtotal)
@@ -123,17 +86,17 @@ export const CheckoutPage: React.FC = () => {
     if (items.length === 0) return 'Keranjang pesanan kosong.'
     if (!activeBranch) return 'Pilih outlet terlebih dahulu.'
     if (!activeBranch.is_open_now) return `${activeBranch.name} sedang tutup. Pilih outlet lain.`
+    if (unavailableItems.length > 0) {
+      return `${unavailableItems[0].cartItem.name} stoknya habis di ${activeBranch.name}. Silakan ganti outlet atau hapus dari keranjang.`
+    }
     if (isDelivery && !location) return 'Tentukan alamat pengantaran terlebih dahulu.'
     if (isDelivery && !quote) return 'Ongkos kirim belum dapat dihitung. Coba tentukan ulang alamat Anda.'
     if (isDelivery && quote && !quote.within_radius) {
       return `Alamat Anda ${quote.distance_km} km dari ${activeBranch.name}, di luar jangkauan ${quote.max_radius_km} km. Pilih outlet lain atau ambil sendiri.`
     }
-    if (quote && subtotal < quote.min_order_amount) {
-      return `Minimum order outlet ini ${formatRupiah(quote.min_order_amount)}.`
-    }
     if (orderType === 'scheduled' && !scheduledTime) return 'Pilih jam pengantaran.'
     return null
-  }, [items.length, activeBranch, isDelivery, location, quote, subtotal, orderType, scheduledTime])
+  }, [items.length, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime])
 
   const handlePhoneBlur = () => {
     if (!phone.trim()) return
@@ -160,8 +123,8 @@ export const CheckoutPage: React.FC = () => {
         setErrorMsg('Silakan isi nama pemesan.')
         return
       }
-      if (isDelivery && !address.trim()) {
-        setErrorMsg('Silakan isi alamat pengantaran.')
+      if (isDelivery && !location) {
+        setErrorMsg('Silakan tentukan alamat pengantaran.')
         return
       }
       if (blocker) {
@@ -177,6 +140,11 @@ export const CheckoutPage: React.FC = () => {
         setSubmitStage('Memverifikasi nomor Anda...')
         await customerApi.login(phoneCheck.normalized, name.trim())
 
+        // Full delivery address combines resolved location point with optional user detail
+        const fullDeliveryAddress = isDelivery && location
+          ? (addressDetail.trim() ? `${location.address} (${addressDetail.trim()})` : location.address)
+          : ''
+
         // 2. Create the order. The server re-prices everything from the
         //    database, so these figures are confirmed rather than trusted.
         setSubmitStage('Membuat pesanan...')
@@ -185,14 +153,14 @@ export const CheckoutPage: React.FC = () => {
           order_type: orderType,
           customer_name: name.trim(),
           customer_phone: phoneCheck.normalized,
-          delivery_address: isDelivery ? address.trim() : '',
+          delivery_address: fullDeliveryAddress,
           delivery_notes: isDelivery ? deliveryNotes.trim() : '',
           delivery_lat: isDelivery && location ? location.lat : null,
           delivery_lon: isDelivery && location ? location.lon : null,
           promo_code: appliedPromo,
           scheduled_at: orderType === 'scheduled' ? scheduledTimestamp(scheduledTime) : null,
           items: items.map((item) => ({
-            menu_item_id: item.menu_item_id,
+            menu_item_id: stockMap[item.id]?.targetMenuItemId || item.menu_item_id,
             quantity: item.quantity,
             notes: item.notes ?? '',
           })),
@@ -201,7 +169,7 @@ export const CheckoutPage: React.FC = () => {
         // 3. Open a Midtrans Snap session.
         setSubmitStage('Menyiapkan pembayaran...')
         const idempotencyKey = `pay-${createdOrder.id}`
-        const payment = await customerApi.createPayment(createdOrder.id, paymentMethod, idempotencyKey)
+        const payment = await customerApi.createPayment(createdOrder.id, 'snap', idempotencyKey)
 
         if (!payment.snap_redirect_url) {
           // Without a payment page there is nothing for the customer to do.
@@ -226,8 +194,8 @@ export const CheckoutPage: React.FC = () => {
       }
     },
     [
-      phone, name, isDelivery, address, blocker, activeBranch, orderType, deliveryNotes,
-      location, appliedPromo, scheduledTime, items, paymentMethod, clearCart, navigate,
+      phone, name, isDelivery, addressDetail, blocker, activeBranch, orderType, deliveryNotes,
+      location, appliedPromo, scheduledTime, items, stockMap, clearCart, navigate,
     ]
   )
 
@@ -355,22 +323,21 @@ export const CheckoutPage: React.FC = () => {
                 )}
 
                 <div>
-                  <label htmlFor="address" className="block text-xs font-semibold text-stone-700 mb-1">
-                    Detail alamat (nomor rumah, patokan) *
+                  <label htmlFor="address-detail" className="block text-xs font-semibold text-stone-700 mb-1">
+                    Detail alamat & patokan <span className="text-stone-400 font-normal">(opsional)</span>
                   </label>
-                  <textarea
-                    id="address"
-                    rows={2}
-                    required
-                    maxLength={500}
-                    value={address}
-                    onChange={(e) => {
-                      setAddress(e.target.value)
-                      setAddressTouched(true)
-                    }}
-                    placeholder="Nama jalan, nomor rumah/gedung, patokan terdekat"
-                    className="w-full px-4 py-2 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white"
-                  ></textarea>
+                  <input
+                    id="address-detail"
+                    type="text"
+                    maxLength={300}
+                    value={addressDetail}
+                    onChange={(e) => setAddressDetail(e.target.value)}
+                    placeholder="mis. No. rumah, lantai/unit, warna pagar (opsional)"
+                    className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
+                  />
+                  <p className="text-[10px] text-stone-400 mt-1">
+                    Alamat pengantaran utama sudah menggunakan titik lokasi di atas. Tambahkan detail seperti nomor rumah atau patokan jika perlu.
+                  </p>
                 </div>
 
                 <div>
@@ -463,6 +430,54 @@ export const CheckoutPage: React.FC = () => {
               )}
             </div>
 
+            {/* ---- Order items preview & stock status ---- */}
+            <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-serif font-bold text-sm text-stone-900">
+                  Ringkasan pesanan ({items.length} menu)
+                </h3>
+                <Link to="/cart" className="text-xs text-brand-600 hover:underline font-bold">
+                  Ubah
+                </Link>
+              </div>
+
+              {unavailableItems.length > 0 && activeBranch && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2.5 text-red-900 text-xs">
+                  <i className="fa-solid fa-triangle-exclamation text-red-600 mt-0.5 text-sm shrink-0" aria-hidden="true"></i>
+                  <div>
+                    <span className="font-bold block">Ada menu yang habis di {activeBranch.name}</span>
+                    <span className="text-[11px] text-stone-600 block mt-0.5">
+                      {unavailableItems.map((u) => u.cartItem.name).join(', ')}. Silakan kembali ke keranjang untuk menghapus menu tersebut atau pilih outlet lain.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="divide-y divide-stone-100">
+                {items.map((it) => {
+                  const isUnavail = stockMap[it.id]?.available === false
+                  return (
+                    <div key={it.id} className="py-2.5 flex items-start justify-between gap-3 text-xs">
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-stone-900">{it.quantity}x</span>
+                          <span className="text-stone-800 font-medium truncate">{it.name}</span>
+                        </div>
+                        {isUnavail && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md">
+                            <i className="fa-solid fa-triangle-exclamation text-red-600 text-[9px]"></i>
+                            Stok habis di outlet ini
+                          </span>
+                        )}
+                        {it.notes && <p className="text-[11px] text-stone-400 italic">"{it.notes}"</p>}
+                      </div>
+                      <span className="font-bold text-stone-900 shrink-0">{formatRupiah(it.price * it.quantity)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
             {/* ---- Customer details ---- */}
             <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-4">
               <h3 className="font-serif font-bold text-sm text-stone-900">Informasi pemesan</h3>
@@ -524,58 +539,60 @@ export const CheckoutPage: React.FC = () => {
               </div>
             </div>
 
-            {/* ---- Payment method ---- */}
-            <fieldset className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
+            {/* ---- Payment method via Midtrans Snap ---- */}
+            <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3.5">
               <div className="flex items-center justify-between gap-2">
-                <legend className="font-serif font-bold text-sm text-stone-900">Metode pembayaran</legend>
-                <span className="text-[11px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">
-                  Midtrans
+                <div className="flex items-center gap-2">
+                  <i className="fa-solid fa-shield-halved text-brand-600 text-base" aria-hidden="true"></i>
+                  <h3 className="font-serif font-bold text-sm text-stone-900">Pembayaran Online</h3>
+                </div>
+                <span className="text-[11px] font-bold text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200">
+                  Midtrans Snap
                 </span>
               </div>
 
-              <div className="space-y-2">
-                {PAYMENT_OPTIONS.map((opt) => (
-                  <label
-                    key={opt.id}
-                    className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
-                      paymentMethod === opt.id
-                        ? 'bg-amber-50/70 border-brand-500 shadow-sm'
-                        : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value={opt.id}
-                        checked={paymentMethod === opt.id}
-                        onChange={() => setPaymentMethod(opt.id)}
-                        className="text-brand-600 focus:ring-brand-500 shrink-0"
-                      />
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 ${opt.iconClass}`}
-                        aria-hidden="true"
-                      >
-                        <i className={`fa-solid ${opt.icon} text-base`}></i>
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-bold text-xs text-stone-900 block">{opt.label}</span>
-                        <span className="text-[10px] text-stone-500 block truncate">{opt.hint}</span>
-                      </div>
-                    </div>
-                    {opt.recommended && (
-                      <span className="text-[10px] font-bold uppercase text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md shrink-0">
-                        Populer
-                      </span>
-                    )}
-                  </label>
-                ))}
-              </div>
+              <div className="p-4 rounded-2xl bg-[#faf8f5] border border-stone-200/80 space-y-3">
+                <p className="text-xs text-stone-700 leading-relaxed">
+                  Pesanan Anda akan dialihkan ke gerbang pembayaran aman <strong>Midtrans Snap</strong>. Anda dapat memilih metode pembayaran langsung di halaman Midtrans:
+                </p>
 
-              <p className="text-[10px] text-stone-400">
-                Anda akan dialihkan ke halaman pembayaran aman Midtrans untuk menyelesaikan transaksi.
-              </p>
-            </fieldset>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-800 font-medium shadow-sm">
+                    <i className="fa-solid fa-qrcode text-brand-600 text-base shrink-0" aria-hidden="true"></i>
+                    <div className="min-w-0">
+                      <span className="block font-bold text-[11px]">QRIS</span>
+                      <span className="block text-[9px] text-stone-400 truncate">Semua E-Wallet / M-Banking</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-800 font-medium shadow-sm">
+                    <i className="fa-solid fa-wallet text-blue-500 text-base shrink-0" aria-hidden="true"></i>
+                    <div className="min-w-0">
+                      <span className="block font-bold text-[11px]">GoPay / Shopee</span>
+                      <span className="block text-[9px] text-stone-400 truncate">App Redirection</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-800 font-medium shadow-sm">
+                    <i className="fa-solid fa-building-columns text-emerald-600 text-base shrink-0" aria-hidden="true"></i>
+                    <div className="min-w-0">
+                      <span className="block font-bold text-[11px]">Virtual Account</span>
+                      <span className="block text-[9px] text-stone-400 truncate">BCA, Mandiri, BNI, BRI</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-800 font-medium shadow-sm">
+                    <i className="fa-solid fa-credit-card text-purple-600 text-base shrink-0" aria-hidden="true"></i>
+                    <div className="min-w-0">
+                      <span className="block font-bold text-[11px]">Kartu Kredit/Debit</span>
+                      <span className="block text-[9px] text-stone-400 truncate">Visa / Mastercard</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-[10px] text-stone-500 pt-1">
+                  <i className="fa-solid fa-lock text-stone-400" aria-hidden="true"></i>
+                  <span>Pembayaran terverifikasi otomatis. Pesanan langsung masuk ke outlet setelah pembayaran berhasil.</span>
+                </div>
+              </div>
+            </div>
 
             {/* ---- Summary & submit ---- */}
             <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3 text-xs">
@@ -633,7 +650,7 @@ export const CheckoutPage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitting || Boolean(blocker)}
+                disabled={isSubmitting || Boolean(blocker) || !isAllAvailable}
                 className="w-full py-4 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm tracking-wide"
               >
                 {isSubmitting ? (
@@ -644,7 +661,7 @@ export const CheckoutPage: React.FC = () => {
                 ) : (
                   <>
                     <i className="fa-solid fa-lock text-xs" aria-hidden="true"></i>
-                    <span>Bayar {formatRupiah(grandTotal)}</span>
+                    <span>{!isAllAvailable ? 'Ada menu yang stoknya habis' : `Bayar ${formatRupiah(grandTotal)}`}</span>
                   </>
                 )}
               </button>

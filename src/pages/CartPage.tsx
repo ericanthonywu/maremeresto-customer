@@ -6,12 +6,15 @@ import { useLocation } from '../context/LocationContext'
 import { customerApi, errorMessage, formatRupiah } from '../api/client'
 import { CartItemCard } from '../components/CartItemCard'
 import { LocationModal } from '../components/LocationModal'
+import { useBranchStock } from '../hooks/useBranchStock'
 
 export const CartPage: React.FC = () => {
-  const { items, subtotal, discount, setDiscount, appliedPromo, setAppliedPromo, clearPromo } = useCart()
+  const { items, subtotal, discount, setDiscount, appliedPromo, setAppliedPromo, clearPromo, removeFromCart } = useCart()
   const { selectedBranch, quoteFor, refreshQuotes, quotesLoading } = useBranch()
   const { location } = useLocation()
   const navigate = useNavigate()
+
+  const { unavailableItems, stockMap, isAllAvailable } = useBranchStock(items, selectedBranch)
 
   const [promoInput, setPromoInput] = useState(appliedPromo)
   const [promoMessage, setPromoMessage] = useState<string | null>(null)
@@ -58,7 +61,18 @@ export const CartPage: React.FC = () => {
     setPromoError(null)
   }
 
-  const belowMinimum = quote ? subtotal < quote.min_order_amount : false
+  const handleRemoveUnavailable = () => {
+    const indicesToRemove = items
+      .map((item, idx) => (stockMap[item.id]?.available === false ? idx : -1))
+      .filter((idx) => idx !== -1)
+      .reverse()
+
+    for (const idx of indicesToRemove) {
+      removeFromCart(idx)
+    }
+  }
+
+  const belowMinimum = false
 
   return (
     <div className="min-h-screen bg-[#fbf9f6] pb-24 lg:pb-16 pt-6">
@@ -87,6 +101,30 @@ export const CartPage: React.FC = () => {
           </Link>
         </div>
 
+        {/* Stock warning banner if any item in cart is unavailable at selected branch */}
+        {unavailableItems.length > 0 && selectedBranch && (
+          <div className="p-4 bg-red-50 border-2 border-red-200 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-red-900 text-xs shadow-sm animate-fade-in">
+            <div className="flex items-start gap-3">
+              <i className="fa-solid fa-triangle-exclamation text-red-600 mt-0.5 text-base shrink-0" aria-hidden="true"></i>
+              <div>
+                <span className="font-bold block text-sm">
+                  {unavailableItems.length} menu stoknya habis di {selectedBranch.name}
+                </span>
+                <span className="text-stone-600 block text-[11px] mt-0.5 leading-relaxed">
+                  {unavailableItems.map((u) => u.cartItem.name).join(', ')}. Silakan hapus menu tersebut atau pilih outlet lain untuk melanjutkan.
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRemoveUnavailable}
+              className="px-3.5 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold rounded-xl text-xs shrink-0 shadow-sm transition-all whitespace-nowrap"
+            >
+              Hapus Menu Habis ({unavailableItems.length})
+            </button>
+          </div>
+        )}
+
         {items.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 shadow-sm space-y-4">
             <div
@@ -111,7 +149,13 @@ export const CartPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-3">
               {items.map((item, index) => (
-                <CartItemCard key={item.id} item={item} index={index} />
+                <CartItemCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  isUnavailable={stockMap[item.id]?.available === false}
+                  unavailableReason={stockMap[item.id]?.reason}
+                />
               ))}
             </div>
 
@@ -214,19 +258,12 @@ export const CartPage: React.FC = () => {
                   <span className="text-brand-700 text-base">{formatRupiah(grandTotal)}</span>
                 </div>
 
-                {belowMinimum && quote && (
-                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2">
-                    Minimum order outlet ini {formatRupiah(quote.min_order_amount)}. Tambah{' '}
-                    {formatRupiah(quote.min_order_amount - subtotal)} lagi untuk melanjutkan.
-                  </p>
-                )}
-
                 <button
                   onClick={() => navigate('/checkout')}
-                  disabled={belowMinimum}
+                  disabled={belowMinimum || !isAllAvailable}
                   className="w-full py-3.5 mt-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs"
                 >
-                  <span>Lanjut ke kasir</span>
+                  <span>{!isAllAvailable ? 'Ada menu yang stoknya habis' : 'Lanjut ke kasir'}</span>
                   <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
                 </button>
               </div>

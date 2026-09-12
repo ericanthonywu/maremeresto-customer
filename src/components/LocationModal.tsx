@@ -24,6 +24,10 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
   const abortRef = useRef<AbortController | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const isInsecure = permission === 'insecure_http'
+  const gpsBlocked = permission === 'denied' || permission === 'unsupported' || isInsecure
 
   // Debounced address lookup. Every result carries the coordinate the geocoder
   // actually returned, so a typed address is priced from where it really is.
@@ -72,8 +76,11 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
       setSearchError(null)
       setHasSearched(false)
       clearError()
+      if (isInsecure || gpsBlocked) {
+        window.setTimeout(() => inputRef.current?.focus(), 150)
+      }
     }
-  }, [isOpen, clearError])
+  }, [isOpen, clearError, isInsecure, gpsBlocked])
 
   // Close on Escape, and keep focus inside the sheet.
   useEffect(() => {
@@ -96,7 +103,11 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
   const handleGps = useCallback(async () => {
     const resolved = await requestGps()
-    if (resolved) onClose()
+    if (resolved) {
+      onClose()
+    } else {
+      window.setTimeout(() => inputRef.current?.focus(), 150)
+    }
   }, [requestGps, onClose])
 
   const handlePick = useCallback(
@@ -115,7 +126,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
   if (!isOpen) return null
 
-  const gpsBlocked = permission === 'denied' || permission === 'unsupported'
+  const popularAreas = ['Manahan', 'Slamet Riyadi', 'Solo Baru', 'Banjarsari', 'Jebres', 'Kartasura']
 
   return (
     <div
@@ -167,32 +178,45 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
           </div>
         )}
 
-        {/* GPS: the browser asks for permission only when this is tapped. */}
+        {/* GPS section */}
         <div className="space-y-2">
-          <button
-            onClick={handleGps}
-            disabled={detecting || gpsBlocked}
-            className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2.5 transition-all active:scale-[0.98]"
-          >
-            <i
-              className={`fa-solid ${detecting ? 'fa-circle-notch fa-spin' : 'fa-location-crosshairs'} text-base`}
-              aria-hidden="true"
-            ></i>
-            <span>
-              {detecting
-                ? 'Mendeteksi lokasi Anda...'
-                : permission === 'granted'
-                  ? 'Perbarui Lokasi GPS Saya'
-                  : 'Gunakan Lokasi GPS Saya'}
-            </span>
-          </button>
+          {!isInsecure ? (
+            <button
+              onClick={handleGps}
+              disabled={detecting || gpsBlocked}
+              className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2.5 transition-all active:scale-[0.98]"
+            >
+              <i
+                className={`fa-solid ${detecting ? 'fa-circle-notch fa-spin' : 'fa-location-crosshairs'} text-base`}
+                aria-hidden="true"
+              ></i>
+              <span>
+                {detecting
+                  ? 'Mendeteksi lokasi Anda...'
+                  : permission === 'granted'
+                    ? 'Perbarui Lokasi GPS Saya'
+                    : 'Gunakan Lokasi GPS Saya'}
+              </span>
+            </button>
+          ) : (
+            <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-start gap-2.5">
+              <i className="fa-solid fa-circle-info text-amber-600 mt-0.5 text-xs shrink-0" aria-hidden="true"></i>
+              <div className="space-y-1">
+                <span className="font-semibold block text-amber-950">
+                  Sensor GPS otomatis memerlukan HTTPS
+                </span>
+                <span className="text-amber-800 block leading-relaxed">
+                  Browser membatasi sensor GPS langsung pada situs non-HTTPS. Silakan cari nama jalan atau area Anda pada kolom di bawah.
+                </span>
+              </div>
+            </div>
+          )}
 
-          {permission === 'denied' && (
+          {!isInsecure && permission === 'denied' && (
             <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-start gap-2">
               <i className="fa-solid fa-circle-info mt-0.5" aria-hidden="true"></i>
               <span>
-                Izin lokasi diblokir untuk situs ini. Untuk mengaktifkan kembali, buka ikon kunci di
-                address bar browser Anda, lalu izinkan akses Lokasi. Atau cari alamat Anda di bawah.
+                Izin lokasi diblokir untuk situs ini. Silakan cari alamat Anda pada kolom pencarian di bawah, atau izinkan akses lokasi di pengaturan browser.
               </span>
             </p>
           )}
@@ -204,16 +228,25 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
         </div>
 
         {error && (
-          <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-xl p-2.5 flex items-start gap-2">
-            <i className="fa-solid fa-circle-exclamation mt-0.5" aria-hidden="true"></i>
-            <span>{error}</span>
-          </p>
+          <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs space-y-2 animate-fade-in shadow-sm">
+            <div className="flex items-start gap-2.5">
+              <i className="fa-solid fa-triangle-exclamation mt-0.5 shrink-0 text-amber-600 text-sm" aria-hidden="true"></i>
+              <div className="space-y-0.5 min-w-0">
+                <span className="font-bold text-amber-950 block">Gagal Mendapatkan Lokasi GPS</span>
+                <span className="leading-relaxed block text-stone-700 text-[11px]">{error}</span>
+              </div>
+            </div>
+            <div className="p-2.5 bg-white/90 rounded-xl border border-amber-200 flex items-center gap-2 text-[11px] text-brand-700 font-bold">
+              <i className="fa-solid fa-pen text-brand-600"></i>
+              <span>Silakan ketik alamat pengantaran Anda secara manual pada kolom di bawah:</span>
+            </div>
+          </div>
         )}
 
         <div className="relative flex items-center justify-center">
           <div className="border-t border-stone-200 w-full"></div>
           <span className="bg-white px-3 text-stone-400 text-[10px] uppercase tracking-wider font-semibold absolute">
-            atau cari alamat
+            {isInsecure ? 'cari alamat pengantaran' : 'atau cari alamat'}
           </span>
         </div>
 
@@ -228,6 +261,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
               aria-hidden="true"
             ></i>
             <input
+              ref={inputRef}
               id="address-search"
               type="text"
               value={query}
@@ -242,6 +276,21 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
                 aria-hidden="true"
               ></i>
             )}
+          </div>
+
+          {/* Quick area suggestions */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] text-stone-400 font-medium">Saran area:</span>
+            {popularAreas.map((area) => (
+              <button
+                key={area}
+                type="button"
+                onClick={() => setQuery(area)}
+                className="px-2 py-0.5 rounded-lg bg-stone-100 hover:bg-brand-50 hover:text-brand-700 text-stone-600 text-[10px] font-medium border border-stone-200 transition-colors"
+              >
+                {area}
+              </button>
+            ))}
           </div>
 
           {query.trim().length > 0 && query.trim().length < MIN_QUERY_LENGTH && (

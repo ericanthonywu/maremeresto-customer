@@ -5,8 +5,10 @@ import { LocationProvider } from './context/LocationContext'
 import { BranchProvider } from './context/BranchContext'
 import { CartProvider } from './context/CartContext'
 import { WebSocketProvider } from './context/WebSocketContext'
+import { CustomerAuthProvider } from './context/CustomerAuthContext'
 import { AppHeader } from './components/AppHeader'
 import { MobileBottomNav } from './components/MobileBottomNav'
+import { CustomerAuthModal } from './components/CustomerAuthModal'
 
 import { SelectBranchPage } from './pages/SelectBranchPage'
 import { MenuPage } from './pages/MenuPage'
@@ -30,35 +32,40 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       {/* LocationProvider wraps BranchProvider: delivery quotes are derived
           from the customer's location, so it must resolve first. */}
-      <LocationProvider>
-        <BranchProvider>
-          <CartProvider>
-            <WebSocketProvider>
-              <BrowserRouter>
-                <div className="min-h-screen bg-[#fbf9f6] text-stone-800 font-sans flex flex-col selection:bg-brand-500 selection:text-white">
-                  <AppHeader />
+      <CustomerAuthProvider>
+        <LocationProvider>
+          <BranchProvider>
+            <CartProvider>
+              <WebSocketProvider>
+                <BrowserRouter>
+                  <div className="min-h-screen bg-[#fbf9f6] text-stone-800 font-sans flex flex-col selection:bg-brand-500 selection:text-white">
+                    <AppHeader />
 
-                  <main className="flex-1">
-                    <Routes>
-                      <Route path="/" element={<Navigate to="/branches" replace />} />
-                      <Route path="/branches" element={<SelectBranchPage />} />
-                      <Route path="/menu" element={<MenuPage />} />
-                      <Route path="/cart" element={<CartPage />} />
-                      <Route path="/checkout" element={<CheckoutPage />} />
-                      <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
-                      <Route path="/tracking" element={<TrackingPage />} />
-                      <Route path="/tracking/:orderId" element={<TrackingPage />} />
-                      <Route path="*" element={<Navigate to="/branches" replace />} />
-                    </Routes>
-                  </main>
+                    <main className="flex-1">
+                      <Routes>
+                        <Route path="/" element={<Navigate to="/branches" replace />} />
+                        <Route path="/branches" element={<SelectBranchPage />} />
+                        <Route path="/menu" element={<MenuPage />} />
+                        <Route path="/cart" element={<CartPage />} />
+                        <Route path="/checkout" element={<CheckoutPage />} />
+                        <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+                        <Route path="/tracking" element={<TrackingPage />} />
+                        <Route path="/tracking/:orderId" element={<TrackingPage />} />
+                        <Route path="*" element={<Navigate to="/branches" replace />} />
+                      </Routes>
+                    </main>
 
-                  <MobileBottomNav />
-                </div>
-              </BrowserRouter>
-            </WebSocketProvider>
-          </CartProvider>
-        </BranchProvider>
-      </LocationProvider>
+                    <MobileBottomNav />
+
+                    {/* Authenticate customer phone when opening the app */}
+                    <CustomerAuthModal />
+                  </div>
+                </BrowserRouter>
+              </WebSocketProvider>
+            </CartProvider>
+          </BranchProvider>
+        </LocationProvider>
+      </CustomerAuthProvider>
     </QueryClientProvider>
   )
 }

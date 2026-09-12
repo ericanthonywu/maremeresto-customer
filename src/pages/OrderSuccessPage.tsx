@@ -79,7 +79,7 @@ export const OrderSuccessPage: React.FC = () => {
     setRetrying(true)
     setError(null)
     try {
-      const created = await customerApi.createPayment(order.id, 'qris', `pay-${order.id}`)
+      const created = await customerApi.createPayment(order.id, 'snap', `pay-${order.id}`)
       if (created.snap_redirect_url) {
         window.location.assign(created.snap_redirect_url)
         return
