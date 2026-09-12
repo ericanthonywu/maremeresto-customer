@@ -1,5 +1,9 @@
 @import '@fortawesome/fontawesome-free/css/all.min.css';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+@import '@fontsource/nunito-sans/latin-400.css';
+@import '@fontsource/nunito-sans/latin-500.css';
+@import '@fontsource/nunito-sans/latin-600.css';
+@import '@fontsource/nunito-sans/latin-700.css';
+@import '@fontsource/nunito-sans/latin-800.css';
 
 @tailwind base;
 @tailwind components;
@@ -79,6 +83,7 @@
 
 body {
   background: rgb(var(--brand-50) / 0.4);
+  font-synthesis: none;
 }
 
 @layer utilities {

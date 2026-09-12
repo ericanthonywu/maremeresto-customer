@@ -50,9 +50,8 @@ export const CheckoutPage: React.FC = () => {
   const [name, setName] = useState(profile.name)
   const [phone, setPhone] = useState(profile.phone)
   const [phoneError, setPhoneError] = useState<string | null>(null)
-  // Optional address detail (house/floor/gate note); main address comes directly from location preview
+  // Required house/landmark detail; the main address comes from the selected map location.
   const [addressDetail, setAddressDetail] = useState('')
-  const [deliveryNotes, setDeliveryNotes] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -95,9 +94,9 @@ export const CheckoutPage: React.FC = () => {
       return `Alamat Anda ${quote.distance_km} km dari ${activeBranch.name}, di luar jangkauan ${quote.max_radius_km} km. Pilih outlet lain atau ambil sendiri.`
     }
     if (orderType === 'scheduled' && !scheduledTime) return 'Pilih jam pengantaran.'
-	if (isDelivery && !deliveryNotes.trim()) return 'Catatan untuk kurir wajib diisi.'
+    if (isDelivery && !addressDetail.trim()) return 'Detail alamat & patokan wajib diisi.'
     return null
-  }, [items.length, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime, deliveryNotes])
+  }, [items.length, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime, addressDetail])
 
   const handlePhoneBlur = () => {
     if (!phone.trim()) return
@@ -128,10 +127,10 @@ export const CheckoutPage: React.FC = () => {
         setErrorMsg('Silakan tentukan alamat pengantaran.')
         return
       }
-	  if (isDelivery && !deliveryNotes.trim()) {
-		setErrorMsg('Catatan untuk kurir wajib diisi.')
-		return
-	  }
+      if (isDelivery && !addressDetail.trim()) {
+        setErrorMsg('Silakan isi detail alamat & patokan.')
+        return
+      }
       if (blocker) {
         setErrorMsg(blocker)
         return
@@ -145,7 +144,7 @@ export const CheckoutPage: React.FC = () => {
         setSubmitStage('Memverifikasi nomor Anda...')
         await customerApi.login(phoneCheck.normalized, name.trim())
 
-        // Full delivery address combines resolved location point with optional user detail
+        // Full delivery address combines the location point with the required detail.
         const fullDeliveryAddress = isDelivery && location
           ? (addressDetail.trim() ? `${location.address} (${addressDetail.trim()})` : location.address)
           : ''
@@ -159,7 +158,8 @@ export const CheckoutPage: React.FC = () => {
           customer_name: name.trim(),
           customer_phone: phoneCheck.normalized,
           delivery_address: fullDeliveryAddress,
-          delivery_notes: isDelivery ? deliveryNotes.trim() : '',
+          // Address detail doubles as the required courier note in the API.
+          delivery_notes: isDelivery ? addressDetail.trim() : '',
           delivery_lat: isDelivery && location ? location.lat : null,
           delivery_lon: isDelivery && location ? location.lon : null,
           promo_code: appliedPromo,
@@ -199,7 +199,7 @@ export const CheckoutPage: React.FC = () => {
       }
     },
     [
-      phone, name, isDelivery, addressDetail, blocker, activeBranch, orderType, deliveryNotes,
+      phone, name, isDelivery, addressDetail, blocker, activeBranch, orderType,
       location, appliedPromo, scheduledTime, items, stockMap, clearCart, navigate,
     ]
   )
@@ -329,11 +329,12 @@ export const CheckoutPage: React.FC = () => {
 
                 <div>
                   <label htmlFor="address-detail" className="block text-xs font-semibold text-stone-700 mb-1">
-                    Detail alamat & patokan <span className="text-stone-400 font-normal">(opsional)</span>
+                    Detail alamat & patokan <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="address-detail"
                     type="text"
+                    required
                     maxLength={300}
                     value={addressDetail}
                     onChange={(e) => setAddressDetail(e.target.value)}
@@ -341,24 +342,8 @@ export const CheckoutPage: React.FC = () => {
                     className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
                   />
                   <p className="text-[10px] text-stone-400 mt-1">
-                    Alamat pengantaran utama sudah menggunakan titik lokasi di atas. Tambahkan detail seperti nomor rumah atau patokan jika perlu.
+                    Alamat pengantaran utama sudah menggunakan titik lokasi di atas. Isi nomor rumah atau patokan agar kurir mudah menemukan lokasi Anda.
                   </p>
-                </div>
-
-                <div>
-                  <label htmlFor="notes" className="block text-xs font-semibold text-stone-700 mb-1">
-                    Catatan untuk kurir <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="notes"
-                    type="text"
-				required
-                    maxLength={300}
-                    value={deliveryNotes}
-                    onChange={(e) => setDeliveryNotes(e.target.value)}
-                    placeholder="Contoh: pagar hitam, titip ke sekuriti"
-                    className="w-full px-4 py-2 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500"
-                  />
                 </div>
               </div>
             )}

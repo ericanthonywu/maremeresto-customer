@@ -7,8 +7,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        serif: ['Playfair Display', 'serif'],
+        // Nunito Sans has gentle, open letterforms that remain easy to scan in
+        // compact order, price, and address information.
+        sans: ['"Nunito Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Retain the existing heading utility with the same cohesive typeface.
+        serif: ['"Nunito Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {
