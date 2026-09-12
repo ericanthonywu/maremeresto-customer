@@ -14,10 +14,10 @@ interface Step {
   icon: string
 }
 
-/** The final operational state means the courier has started the delivery. */
+/** The final operational state means the outlet has started the delivery. */
 const DELIVERY_STEPS: Step[] = [
   { id: 'accepted', title: 'Belum diantar', desc: 'Pesanan sudah diterima outlet dan menunggu diantar.', icon: 'fa-receipt' },
-  { id: 'completed', title: 'Sedang diantar', desc: 'Driver sedang mengantar pesanan Anda dan akan menghubungi lewat WhatsApp saat sudah sampai. Silakan menunggu, lalu selamat menikmati!', icon: 'fa-motorcycle' },
+  { id: 'completed', title: 'Sedang diantar', desc: 'Pesanan sedang diantar. Untuk koordinasi pengantaran, harap hubungi admin outlet melalui WhatsApp.', icon: 'fa-motorcycle' },
 ]
 
 const PICKUP_STEPS: Step[] = [

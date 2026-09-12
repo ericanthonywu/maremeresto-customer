@@ -13,10 +13,6 @@ export type OrderUpdate = {
   status?: string
   version?: number
   message?: string
-  driver_name?: string
-  driver_phone?: string
-  driver_vehicle?: string
-  driver_plate?: string
   rejection_reason?: string
 }
 

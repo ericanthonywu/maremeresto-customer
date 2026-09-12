@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useBranch } from '../context/BranchContext'
@@ -58,6 +58,9 @@ export const CheckoutPage: React.FC = () => {
   const [submitStage, setSubmitStage] = useState<string>('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [locationOpen, setLocationOpen] = useState(false)
+  // State controls the visual disabled state; the ref closes the tiny window
+  // before React rerenders if a customer taps the payment CTA repeatedly.
+  const submitInFlightRef = useRef(false)
 
   const isDelivery = orderType === 'delivery' || orderType === 'scheduled'
 
@@ -68,7 +71,7 @@ export const CheckoutPage: React.FC = () => {
   }, [selectedBranch, nearestBranch, setSelectedBranch])
 
   // Validate stock in real-time for the active branch
-  const { unavailableItems, stockMap, isAllAvailable } = useBranchStock(items, activeBranch)
+  const { unavailableItems, stockMap } = useBranchStock(items, activeBranch)
 
   useEffect(() => {
     if (location && subtotal > 0) void refreshQuotes(subtotal)
@@ -98,6 +101,17 @@ export const CheckoutPage: React.FC = () => {
     return null
   }, [items.length, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime, addressDetail])
 
+  /** Fields the customer can complete directly before tapping the payment CTA. */
+  const incompleteFields = useMemo(() => {
+    const fields: string[] = []
+    if (!name.trim()) fields.push('Nama pemesan')
+    if (!normalizePhone(phone).valid) fields.push('Nomor WhatsApp yang valid')
+    if (isDelivery && !location) fields.push('Titik lokasi pengantaran')
+    if (isDelivery && !addressDetail.trim()) fields.push('Detail alamat & patokan')
+    if (orderType === 'scheduled' && !scheduledTime) fields.push('Jam pengantaran')
+    return fields
+  }, [name, phone, isDelivery, location, addressDetail, orderType, scheduledTime])
+
   const handlePhoneBlur = () => {
     if (!phone.trim()) return
     const res = normalizePhone(phone)
@@ -112,6 +126,7 @@ export const CheckoutPage: React.FC = () => {
   const handleSubmitOrder = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
+      if (submitInFlightRef.current) return
       setErrorMsg(null)
 
       const phoneCheck = normalizePhone(phone)
@@ -137,6 +152,7 @@ export const CheckoutPage: React.FC = () => {
       }
       if (!activeBranch) return
 
+      submitInFlightRef.current = true
       setIsSubmitting(true)
       try {
         // 1. Establish a session so the order belongs to this customer and can
@@ -194,6 +210,7 @@ export const CheckoutPage: React.FC = () => {
         window.location.assign(payment.snap_redirect_url)
       } catch (err) {
         setErrorMsg(errorMessage(err, 'Gagal membuat pesanan. Periksa koneksi dan coba lagi.'))
+        submitInFlightRef.current = false
         setIsSubmitting(false)
         setSubmitStage('')
       }
@@ -233,7 +250,7 @@ export const CheckoutPage: React.FC = () => {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmitOrder} className="space-y-5">
+          <form noValidate onSubmit={handleSubmitOrder} className="space-y-5">
             {/* ---- Order type ---- */}
             <fieldset className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
               <legend className="font-serif font-bold text-sm text-stone-900">Metode penerimaan</legend>
@@ -567,7 +584,19 @@ export const CheckoutPage: React.FC = () => {
                 <span className="text-brand-700 text-lg font-mono">{formatRupiah(grandTotal)}</span>
               </div>
 
-              {(errorMsg || blocker) && (
+              {incompleteFields.length > 0 && !errorMsg && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+                  <p className="flex items-center gap-2">
+                    <i className="fa-solid fa-circle-exclamation shrink-0" aria-hidden="true"></i>
+                    Lengkapi sebelum membayar:
+                  </p>
+                  <ul className="mt-1.5 list-disc space-y-0.5 pl-6 font-medium">
+                    {incompleteFields.map((field) => <li key={field}>{field}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {(errorMsg || (blocker && incompleteFields.length === 0)) && (
                 <div
                   className={`p-3 rounded-2xl text-xs font-semibold flex items-start gap-2 ${
                     errorMsg
@@ -586,7 +615,7 @@ export const CheckoutPage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitting || Boolean(blocker) || !isAllAvailable}
+                disabled={isSubmitting}
                 className="w-full py-4 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm tracking-wide"
               >
                 {isSubmitting ? (
@@ -597,7 +626,7 @@ export const CheckoutPage: React.FC = () => {
                 ) : (
                   <>
                     <i className="fa-solid fa-lock text-xs" aria-hidden="true"></i>
-                    <span>{!isAllAvailable ? 'Ada menu yang stoknya habis' : `Bayar ${formatRupiah(grandTotal)}`}</span>
+                    <span>Bayar {formatRupiah(grandTotal)}</span>
                   </>
                 )}
               </button>

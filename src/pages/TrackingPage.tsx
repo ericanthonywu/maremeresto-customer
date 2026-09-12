@@ -5,7 +5,6 @@ import { useWebSocket, type OrderUpdate } from '../context/WebSocketContext'
 import type { Order } from '../types'
 import { RouteProgressBanner } from '../components/RouteProgressBanner'
 import { OrderTimeline } from '../components/OrderTimeline'
-import { DriverProfileCard } from '../components/DriverProfileCard'
 import { OrderFeedbackCard } from '../components/OrderFeedbackCard'
 
 const CANCEL_WINDOW_MS = 5 * 60 * 1000
@@ -83,19 +82,6 @@ export const TrackingPage: React.FC = () => {
         )
         if (payload.message) setNotice(payload.message)
       }
-      if (event === 'driver_assigned') {
-        setOrder((prev) =>
-          prev
-            ? {
-                ...prev,
-                driver_name: payload.driver_name ?? prev.driver_name,
-                driver_phone: payload.driver_phone ?? prev.driver_phone,
-                driver_vehicle: payload.driver_vehicle ?? prev.driver_vehicle,
-                driver_plate: payload.driver_plate ?? prev.driver_plate,
-              }
-            : prev
-        )
-      }
     })
   }, [orderId, subscribeToOrder])
 
@@ -127,11 +113,7 @@ export const TrackingPage: React.FC = () => {
   const canSelfCancel =
     order?.status === 'pending' && Date.now() - new Date(order.created_at).getTime() < CANCEL_WINDOW_MS
 
-  const showDriverCard =
-    order &&
-    order.order_type !== 'pickup' &&
-    Boolean(order.driver_name) &&
-    ['accepted', 'completed', 'ready', 'on_the_way', 'delivered'].includes(order.status)
+  const isBeingDelivered = order?.order_type !== 'pickup' && order?.status === 'completed'
 
   return (
     <div className="min-h-screen bg-brand-50/40 pb-24 lg:pb-16 pt-6 transition-colors duration-300">
@@ -193,9 +175,13 @@ export const TrackingPage: React.FC = () => {
                     <i className="fa-brands fa-whatsapp"></i>
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-sm font-extrabold text-emerald-950">Hubungi admin outlet</h2>
+                    <h2 className="text-sm font-extrabold text-emerald-950">
+                      {isBeingDelivered ? 'Pesanan sedang diantar' : 'Hubungi admin outlet'}
+                    </h2>
                     <p className="mt-0.5 text-xs leading-relaxed text-emerald-900">
-                      Untuk informasi atau koordinasi pesanan, hubungi admin {order.branch.name} melalui WhatsApp.
+                      {isBeingDelivered
+                        ? `Untuk koordinasi pengantaran, harap hubungi admin ${order.branch.name} melalui WhatsApp.`
+                        : `Untuk informasi atau koordinasi pesanan, hubungi admin ${order.branch.name} melalui WhatsApp.`}
                     </p>
                   </div>
                 </div>
@@ -211,15 +197,6 @@ export const TrackingPage: React.FC = () => {
                   <span>WhatsApp admin {order.branch.name}</span>
                 </a>
               </section>
-            )}
-
-            {showDriverCard && (
-              <DriverProfileCard
-                driverName={order.driver_name}
-                driverPhone={order.driver_phone}
-                driverVehicle={order.driver_vehicle}
-                driverPlate={order.driver_plate}
-              />
             )}
 
             <OrderTimeline status={order.status} orderType={order.order_type} rejectionReason={order.rejection_reason} />

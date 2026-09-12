@@ -28,8 +28,8 @@ const HEADLINE: Partial<Record<Order['status'], string>> = {
   preparing: 'Belum diantar',
   ready: 'Belum diantar',
   on_the_way: 'Belum diantar',
-  delivered: 'Driver sedang mengantar pesanan',
-  completed: 'Driver sedang mengantar pesanan',
+  delivered: 'Pesanan sedang diantar',
+  completed: 'Pesanan sedang diantar',
   cancelled: 'Pesanan dibatalkan',
   rejected: 'Pesanan ditolak outlet',
 }
