@@ -13,43 +13,37 @@ interface BranchCardProps {
  * Outlet theming is driven by the branch's own gradient_theme column rather
  * than a switch on slug, so adding an outlet no longer needs a code change.
  */
-const THEMES: Record<Branch['gradient_theme'], { gradient: string; btn: string; panel: string; tag: string }> = {
+const THEMES: Record<Branch['gradient_theme'], { gradient: string; btn: string; panel: string }> = {
   emerald: {
     gradient: 'from-emerald-900 via-emerald-800 to-teal-800',
     btn: 'bg-emerald-700 hover:bg-emerald-800',
     panel: 'bg-emerald-50/70 border-emerald-100',
-    tag: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   },
   indigo: {
     gradient: 'from-indigo-900 via-indigo-800 to-purple-900',
     btn: 'bg-indigo-700 hover:bg-indigo-800',
     panel: 'bg-indigo-50/70 border-indigo-100',
-    tag: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   },
   brand: {
     gradient: 'from-brand-800 via-brand-700 to-amber-700',
     btn: 'bg-brand-600 hover:bg-brand-700',
     panel: 'bg-brand-50/70 border-brand-100',
-    tag: 'bg-amber-50 text-amber-800 border-amber-200',
   },
   // Distinct outlet palettes: Shopee orange, Gojek green, and GoPay blue.
   shopee: {
     gradient: 'from-orange-700 via-orange-600 to-red-600',
     btn: 'bg-orange-600 hover:bg-orange-700',
     panel: 'bg-orange-50/80 border-orange-100',
-    tag: 'bg-orange-50 text-orange-700 border-orange-200',
   },
   gojek: {
     gradient: 'from-green-800 via-emerald-700 to-teal-700',
     btn: 'bg-green-700 hover:bg-green-800',
     panel: 'bg-green-50/80 border-green-100',
-    tag: 'bg-green-50 text-green-700 border-green-200',
   },
   gopay: {
     gradient: 'from-sky-800 via-blue-700 to-indigo-700',
     btn: 'bg-blue-600 hover:bg-blue-700',
     panel: 'bg-blue-50/80 border-blue-100',
-    tag: 'bg-blue-50 text-blue-700 border-blue-200',
   },
 }
 
@@ -130,19 +124,6 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
               </span>
             </div>
           </div>
-
-          {branch.facility_tags?.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {branch.facility_tags.map((tag) => (
-                <span
-                  key={tag}
-                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium border ${theme.tag}`}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
 
           {/* Delivery fee: shown only once it is actually known. */}
           {quote ? (
