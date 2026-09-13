@@ -36,7 +36,6 @@ export const MenuPage: React.FC = () => {
     // Wait for a real outlet rather than guessing a slug. The previous default
     // ('sudirman') no longer exists, so the menu silently failed to load.
     if (!activeSlug) {
-      if (!branchesLoading) setLoading(false)
       return
     }
 
@@ -84,7 +83,7 @@ export const MenuPage: React.FC = () => {
     })
   }, [menuItems, activeCategory, searchQuery])
 
-  const isBusy = loading || branchesLoading
+  const isBusy = (loading && Boolean(activeSlug)) || branchesLoading
 
   return (
     <div className="min-h-screen bg-brand-50/40 pb-28 lg:pb-16 transition-colors duration-300">

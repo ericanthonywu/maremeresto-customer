@@ -56,11 +56,19 @@ export const TrackingPage: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
-    if (orderId) {
-      void loadOrder(orderId)
-    } else {
-      void loadRecent()
+    let active = true
+    const fetchData = async () => {
+      if (orderId) {
+        await loadOrder(orderId)
+      } else {
+        await loadRecent()
+      }
+    }
+    if (active) {
+      void fetchData()
+    }
+    return () => {
+      active = false
     }
   }, [orderId, loadOrder, loadRecent])
 
@@ -110,8 +118,16 @@ export const TrackingPage: React.FC = () => {
     }
   }
 
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (order?.status !== 'pending') return
+    const interval = window.setInterval(() => setNow(Date.now()), 5000)
+    return () => window.clearInterval(interval)
+  }, [order?.status])
+
   const canSelfCancel =
-    order?.status === 'pending' && Date.now() - new Date(order.created_at).getTime() < CANCEL_WINDOW_MS
+    order?.status === 'pending' && now - new Date(order.created_at).getTime() < CANCEL_WINDOW_MS
 
   const isBeingDelivered = order?.order_type !== 'pickup' && order?.status === 'completed'
 

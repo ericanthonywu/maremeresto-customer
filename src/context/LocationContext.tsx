@@ -200,16 +200,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Read the browser's stored decision without triggering a prompt, so the UI
   // can show the right call to action before asking for anything.
   useEffect(() => {
-    if (!isSecureOrigin()) {
-      setPermission('insecure_http')
-      return
-    }
-    if (!navigator.geolocation) {
-      setPermission('unsupported')
-      return
-    }
-    if (!navigator.permissions?.query) {
-      setPermission('prompt')
+    if (!isSecureOrigin() || !navigator.geolocation || !navigator.permissions?.query) {
       return
     }
 
@@ -321,10 +312,18 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [markPrompted, setLocation])
 
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!location || location.source !== 'gps') return
+    const interval = window.setInterval(() => setNow(Date.now()), 60000)
+    return () => window.clearInterval(interval)
+  }, [location])
+
   const isStale = useMemo(() => {
     if (!location || location.source !== 'gps') return false
-    return Date.now() - location.capturedAt > STALE_AFTER_MS
-  }, [location])
+    return now - location.capturedAt > STALE_AFTER_MS
+  }, [location, now])
 
   const value = useMemo(
     () => ({

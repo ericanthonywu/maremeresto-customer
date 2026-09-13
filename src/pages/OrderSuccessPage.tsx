@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { customerApi, errorMessage, formatRupiah } from '../api/client'
 import type { Order, PaymentStatus } from '../types'
@@ -18,7 +18,7 @@ export const OrderSuccessPage: React.FC = () => {
   const [pollingExpired, setPollingExpired] = useState(false)
   const [retrying, setRetrying] = useState(false)
 
-  const startedAt = useRef(Date.now())
+  const [startedAt] = useState(() => Date.now())
 
   const load = useCallback(async () => {
     if (!orderId) return
@@ -52,7 +52,7 @@ export const OrderSuccessPage: React.FC = () => {
     if (!isAwaitingPayment || pollingExpired) return
 
     const timer = window.setInterval(() => {
-      if (Date.now() - startedAt.current > POLL_TIMEOUT_MS) {
+      if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
         setPollingExpired(true)
         return
       }
@@ -60,7 +60,7 @@ export const OrderSuccessPage: React.FC = () => {
     }, POLL_INTERVAL_MS)
 
     return () => window.clearInterval(timer)
-  }, [isAwaitingPayment, pollingExpired, load])
+  }, [isAwaitingPayment, pollingExpired, load, startedAt])
 
   const copyOrderNumber = async () => {
     if (!order?.order_number) return

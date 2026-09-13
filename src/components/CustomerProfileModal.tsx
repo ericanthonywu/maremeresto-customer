@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { errorMessage, normalizePhone } from '../api/client'
 import { useCustomerAuth } from '../context/CustomerAuthContext'
@@ -10,17 +10,21 @@ interface CustomerProfileModalProps {
 
 export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({ isOpen, onClose }) => {
   const { user, updateProfile } = useCustomerAuth()
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
+  const [name, setName] = useState(() => user?.name ?? '')
+  const [phone, setPhone] = useState(() => user?.phone ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!isOpen) return
-    setName(user?.name ?? '')
-    setPhone(user?.phone ?? '')
-    setError(null)
-  }, [isOpen, user])
+  // Track previous isOpen state to synchronize form inputs when modal opens
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    if (isOpen) {
+      setName(user?.name ?? '')
+      setPhone(user?.phone ?? '')
+      setError(null)
+    }
+  }
 
   if (!isOpen || !user) return null
 
