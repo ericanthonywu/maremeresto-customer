@@ -87,17 +87,17 @@ export const CartPage: React.FC = () => {
               <i className="fa-solid fa-arrow-left text-sm" aria-hidden="true"></i>
             </Link>
             <div className="min-w-0">
-              <h1 className="font-serif text-2xl font-bold text-stone-900">Keranjang</h1>
+              <h1 className="font-serif text-2xl font-bold text-stone-900">Keranjang Pesanan</h1>
               {selectedBranch && (
                 <p className="text-xs text-stone-500 truncate">
-                  Outlet: <span className="font-bold text-stone-800">{selectedBranch.name}</span>
+                  Cabang: <span className="font-bold text-stone-800">{selectedBranch.name}</span>
                 </p>
               )}
             </div>
           </div>
 
           <Link to="/branches" className="text-xs text-brand-600 hover:underline font-bold shrink-0">
-            Ganti outlet
+            Ganti Cabang
           </Link>
         </div>
 
@@ -224,13 +224,13 @@ export const CartPage: React.FC = () => {
                 {location && quote ? (
                   <>
                     <div className="flex justify-between text-stone-600">
-                      <span>Ongkir ({quote.distance_km} km)</span>
+                      <span>Biaya Pengiriman ({quote.distance_km} km)</span>
                       <span className="font-bold text-stone-900">
-                        {quotesLoading ? '…' : deliveryFee === 0 ? 'Gratis' : formatRupiah(deliveryFee)}
+                        {quotesLoading ? '…' : deliveryFee === 0 ? 'Gratis Kirim' : formatRupiah(deliveryFee)}
                       </span>
                     </div>
                     <div className="flex justify-between text-stone-600">
-                      <span>Biaya layanan</span>
+                      <span>Biaya Layanan Aplikasi</span>
                       <span className="font-bold text-stone-900">{formatRupiah(serviceFee)}</span>
                     </div>
                   </>
@@ -241,7 +241,7 @@ export const CartPage: React.FC = () => {
                   >
                     <i className="fa-solid fa-location-crosshairs text-brand-600 shrink-0" aria-hidden="true"></i>
                     <span className="text-[11px] text-stone-600 font-semibold">
-                      Tentukan alamat untuk menghitung ongkir
+                      Pilih alamat rumah untuk melihat biaya pengiriman
                     </span>
                   </button>
                 )}
@@ -263,7 +263,7 @@ export const CartPage: React.FC = () => {
                   disabled={belowMinimum || !isAllAvailable}
                   className="w-full py-3.5 mt-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs"
                 >
-                  <span>{!isAllAvailable ? 'Ada menu yang stoknya habis' : 'Lanjut ke kasir'}</span>
+                  <span>{!isAllAvailable ? 'Ada menu yang stoknya habis' : 'Lanjut ke Pembayaran / Kasir'}</span>
                   <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
                 </button>
               </div>

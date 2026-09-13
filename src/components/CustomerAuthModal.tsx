@@ -84,7 +84,7 @@ export const CustomerAuthModal: React.FC = () => {
                 Selamat Datang di Mareme Group
               </h2>
               <p className="text-xs text-stone-500 leading-relaxed max-w-xs mx-auto">
-                Silakan masukkan WhatsApp Anda untuk mulai memesan makanan dan minuman favorit.
+                Masukkan nomor WhatsApp Anda untuk mulai memesan makanan dan minuman favorit keluarga.
               </p>
             </div>
 
@@ -112,8 +112,8 @@ export const CustomerAuthModal: React.FC = () => {
                     className="w-full pl-16 pr-3.5 py-3 text-xs bg-stone-50 border border-stone-300 rounded-2xl focus:outline-none focus:border-brand-500 focus:bg-white font-mono transition-all text-stone-900"
                   />
                 </div>
-                <p className="text-[10px] text-stone-400">
-                  Digunakan untuk konfirmasi pesanan dan komunikasi pengantaran kurir.
+                <p className="text-[10px] text-stone-500">
+                  Nomor ini digunakan untuk memberi kabar status pesanan dan dihubungi oleh kurir.
                 </p>
               </div>
 

@@ -142,10 +142,10 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
               <div className={`rounded-2xl p-3 border flex items-center justify-between text-xs ${theme.panel}`}>
                 <span className="text-stone-600 flex items-center gap-1.5 font-medium">
                   <i className="fa-solid fa-motorcycle text-stone-500" aria-hidden="true"></i>
-                  Ongkir ({quote.distance_km} km)
+                  Biaya Kirim ({quote.distance_km} km)
                 </span>
                 <span className="font-extrabold text-stone-900">
-                  {quote.delivery_fee === 0 ? 'Gratis' : formatRupiah(quote.delivery_fee)}
+                  {quote.delivery_fee === 0 ? 'Gratis Kirim' : formatRupiah(quote.delivery_fee)}
                 </span>
               </div>
             )
@@ -155,7 +155,7 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
               className="w-full rounded-2xl p-3 border border-dashed border-stone-300 bg-stone-50 hover:bg-stone-100 text-xs text-stone-600 flex items-center justify-center gap-2 transition-colors"
             >
               <i className="fa-solid fa-location-crosshairs text-brand-600" aria-hidden="true"></i>
-              <span className="font-semibold">Tentukan lokasi untuk lihat ongkir</span>
+              <span className="font-semibold">Pilih alamat untuk melihat ongkos kirim</span>
             </button>
           )}
         </div>
@@ -167,7 +167,7 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
           disabled={!branch.is_open_now}
           className={`w-full py-3 ${theme.btn} disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2`}
         >
-          <span>{branch.is_open_now ? 'Pilih outlet & mulai pesan' : 'Outlet sedang tutup'}</span>
+          <span>{branch.is_open_now ? 'Pilih Cabang Ini & Lihat Menu' : 'Cabang Sedang Tutup'}</span>
           {branch.is_open_now && <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>}
         </button>
       </div>

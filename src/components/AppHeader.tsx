@@ -69,7 +69,7 @@ export const AppHeader: React.FC = () => {
             </div>
             <div>
               <span className="font-serif font-bold text-lg text-stone-900 leading-none block">Mareme Group</span>
-              <span className="text-[11px] text-brand-600 font-medium tracking-wide">Online Ordering</span>
+              <span className="text-[11px] text-brand-600 font-medium tracking-wide">Pemesanan Online</span>
             </div>
           </Link>
 

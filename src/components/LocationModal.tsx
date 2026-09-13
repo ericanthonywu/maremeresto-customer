@@ -148,10 +148,10 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 id="location-modal-title" className="font-serif font-bold text-lg text-stone-900">
-              Tentukan Alamat Pengantaran
+              Pilih Alamat Pengiriman
             </h3>
             <p className="text-[11px] text-stone-500 mt-0.5">
-              {reason ?? 'Ongkos kirim dihitung dari jarak sebenarnya ke outlet terdekat.'}
+              {reason ?? 'Biaya pengiriman dihitung otomatis berdasarkan jarak rumah Anda ke cabang terdekat.'}
             </p>
           </div>
           <button
@@ -192,10 +192,10 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
               ></i>
               <span>
                 {detecting
-                  ? 'Mendeteksi lokasi Anda...'
+                  ? 'Mencari lokasi Anda otomatis...'
                   : permission === 'granted'
-                    ? 'Perbarui Lokasi GPS Saya'
-                    : 'Gunakan Lokasi GPS Saya'}
+                    ? 'Perbarui Lokasi Otomatis (GPS)'
+                    : 'Gunakan Lokasi Otomatis (GPS)'}
               </span>
             </button>
           ) : (
@@ -203,10 +203,10 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
               <i className="fa-solid fa-circle-info text-amber-600 mt-0.5 text-xs shrink-0" aria-hidden="true"></i>
               <div className="space-y-1">
                 <span className="font-semibold block text-amber-950">
-                  Sensor GPS otomatis memerlukan HTTPS
+                  Pencarian Lokasi Otomatis Tidak Tersedia
                 </span>
                 <span className="text-amber-800 block leading-relaxed">
-                  Browser membatasi sensor GPS langsung pada situs non-HTTPS. Silakan cari nama jalan atau area Anda pada kolom di bawah.
+                  Untuk kemudahan Anda, silakan ketik nama jalan, perumahan, atau area tempat tinggal Anda pada kolom pencarian di bawah ini.
                 </span>
               </div>
             </div>
@@ -246,7 +246,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
         <div className="relative flex items-center justify-center">
           <div className="border-t border-stone-200 w-full"></div>
           <span className="bg-white px-3 text-stone-400 text-[10px] uppercase tracking-wider font-semibold absolute">
-            {isInsecure ? 'cari alamat pengantaran' : 'atau cari alamat'}
+            {isInsecure ? 'ketik alamat pengiriman' : 'atau ketik alamat'}
           </span>
         </div>
 

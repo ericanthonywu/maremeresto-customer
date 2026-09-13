@@ -140,7 +140,7 @@ export const TrackingPage: React.FC = () => {
           {order && !TERMINAL_STATUSES.includes(order.status) && (
             <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-full flex items-center gap-1.5 shrink-0">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" aria-hidden="true"></span>
-              <span className="hidden sm:inline">Live</span>
+              <span className="hidden sm:inline">Status Terkini</span>
             </span>
           )}
         </div>
@@ -169,19 +169,19 @@ export const TrackingPage: React.FC = () => {
             />
 
             {order.branch?.whatsapp_number && (
-              <section className="rounded-3xl border-2 border-emerald-400 bg-emerald-50 p-4 shadow-md shadow-emerald-100" aria-label="Hubungi admin outlet">
+              <section className="rounded-3xl border-2 border-emerald-400 bg-emerald-50 p-4 shadow-md shadow-emerald-100" aria-label="Hubungi admin cabang">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-xl text-white shadow-sm" aria-hidden="true">
                     <i className="fa-brands fa-whatsapp"></i>
                   </div>
                   <div className="min-w-0">
                     <h2 className="text-sm font-extrabold text-emerald-950">
-                      {isBeingDelivered ? 'Pesanan sedang diantar' : 'Hubungi admin outlet'}
+                      {isBeingDelivered ? 'Pesanan Sedang Dalam Perjalanan' : 'Butuh Bantuan? Hubungi Kami'}
                     </h2>
                     <p className="mt-0.5 text-xs leading-relaxed text-emerald-900">
                       {isBeingDelivered
-                        ? `Untuk koordinasi pengantaran, harap hubungi admin ${order.branch.name} melalui WhatsApp.`
-                        : `Untuk informasi atau koordinasi pesanan, hubungi admin ${order.branch.name} melalui WhatsApp.`}
+                        ? `Apabila ada pertanyaan mengenai lokasi kurir, Anda dapat menghubungi staf cabang ${order.branch.name} melalui WhatsApp.`
+                        : `Bila Anda memiliki pertanyaan atau pesan khusus, staf cabang ${order.branch.name} siap membantu Anda.`}
                     </p>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ export const TrackingPage: React.FC = () => {
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-md transition-all hover:bg-emerald-700 active:scale-[0.98]"
                 >
                   <i className="fa-brands fa-whatsapp text-base" aria-hidden="true"></i>
-                  <span>WhatsApp admin {order.branch.name}</span>
+                  <span>Chat WhatsApp Staf Cabang {order.branch.name}</span>
                 </a>
               </section>
             )}
