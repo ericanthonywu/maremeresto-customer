@@ -148,10 +148,10 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 id="location-modal-title" className="font-serif font-bold text-lg text-stone-900">
-              Pilih Alamat Pengiriman
+              Pilih Alamat Pengiriman Rumah 📍
             </h3>
             <p className="text-[11px] text-stone-500 mt-0.5">
-              {reason ?? 'Biaya pengiriman dihitung otomatis berdasarkan jarak rumah Anda ke cabang terdekat.'}
+              {reason ?? 'Biaya pengiriman dihitung otomatis berdasarkan jarak rumah Bapak/Ibu ke cabang terdekat 😊'}
             </p>
           </div>
           <button
@@ -192,10 +192,10 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
               ></i>
               <span>
                 {detecting
-                  ? 'Mencari lokasi Anda otomatis...'
+                  ? 'Mencari lokasi Anda otomatis... ⏳'
                   : permission === 'granted'
-                    ? 'Perbarui Lokasi Otomatis (GPS)'
-                    : 'Gunakan Lokasi Otomatis (GPS)'}
+                    ? 'Perbarui Lokasi Otomatis (GPS) 📍'
+                    : 'Gunakan Lokasi Otomatis (GPS) 📍'}
               </span>
             </button>
           ) : (

@@ -233,8 +233,8 @@ export const CheckoutPage: React.FC = () => {
             <i className="fa-solid fa-arrow-left text-sm" aria-hidden="true"></i>
           </Link>
           <div>
-            <h1 className="font-serif text-2xl font-bold text-stone-900">Kasir & Pembayaran</h1>
-            <p className="text-xs text-stone-500">Periksa outlet, alamat, dan rincian biaya Anda</p>
+            <h1 className="font-serif text-2xl font-bold text-stone-900">Penyelesaian Pesanan 💳</h1>
+            <p className="text-xs text-stone-500">Mohon periksa cabang pilihan, alamat pengiriman, dan rincian pesanan Anda 😊</p>
           </div>
         </div>
 
@@ -253,12 +253,12 @@ export const CheckoutPage: React.FC = () => {
           <form noValidate onSubmit={handleSubmitOrder} className="space-y-5">
             {/* ---- Order type ---- */}
             <fieldset className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
-              <legend className="font-serif font-bold text-sm text-stone-900">Metode penerimaan</legend>
+              <legend className="font-serif font-bold text-sm text-stone-900">Cara Penerimaan Pesanan 🛵</legend>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { id: 'delivery', label: 'Diantar ke Rumah', icon: 'fa-motorcycle' },
-                  { id: 'pickup', label: 'Ambil di Cabang', icon: 'fa-person-walking' },
-                  { id: 'scheduled', label: 'Jadwalkan', icon: 'fa-clock' },
+                  { id: 'delivery', label: 'Diantar ke Rumah 🛵', icon: 'fa-motorcycle' },
+                  { id: 'pickup', label: 'Ambil di Cabang 🚶', icon: 'fa-person-walking' },
+                  { id: 'scheduled', label: 'Jadwalkan Jam ⏰', icon: 'fa-clock' },
                 ] as const).map((opt) => (
                   <button
                     key={opt.id}
@@ -307,13 +307,13 @@ export const CheckoutPage: React.FC = () => {
             {isDelivery && (
               <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-serif font-bold text-sm text-stone-900">Alamat Pengiriman</h3>
+                  <h3 className="font-serif font-bold text-sm text-stone-900">Alamat Pengiriman Rumah 🏠</h3>
                   <button
                     type="button"
                     onClick={() => setLocationOpen(true)}
                     className="text-xs text-brand-600 hover:underline font-bold shrink-0"
                   >
-                    {location ? 'Ubah Alamat' : 'Pilih Alamat'}
+                    {location ? 'Ubah Alamat 📍' : 'Pilih Alamat 📍'}
                   </button>
                 </div>
 
@@ -488,11 +488,11 @@ export const CheckoutPage: React.FC = () => {
 
             {/* ---- Customer details ---- */}
             <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-4">
-              <h3 className="font-serif font-bold text-sm text-stone-900">Informasi pemesan</h3>
+              <h3 className="font-serif font-bold text-sm text-stone-900">Data Pemesan 👤</h3>
 
               <div>
                 <label htmlFor="cust-name" className="block text-xs font-semibold text-stone-700 mb-1">
-                  Nama pemesan *
+                  Nama Pemesan / Panggilan *
                 </label>
                 <input
                   id="cust-name"
@@ -501,7 +501,7 @@ export const CheckoutPage: React.FC = () => {
                   maxLength={100}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Nama lengkap Anda"
+                  placeholder="Contoh: Pak Budi / Bu Siti"
                   className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
                 />
               </div>
@@ -509,7 +509,7 @@ export const CheckoutPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1 gap-2">
                   <label htmlFor="cust-phone" className="block text-xs font-semibold text-stone-700">
-                    WhatsApp *
+                    Nomor WhatsApp Active *
                   </label>
                   <span className="text-[10px] text-stone-400 font-mono">08... atau +628...</span>
                 </div>
@@ -626,7 +626,7 @@ export const CheckoutPage: React.FC = () => {
                 ) : (
                   <>
                     <i className="fa-solid fa-lock text-xs" aria-hidden="true"></i>
-                    <span>Bayar {formatRupiah(grandTotal)}</span>
+                    <span>Lanjut Bayar {formatRupiah(grandTotal)} 💳</span>
                   </>
                 )}
               </button>

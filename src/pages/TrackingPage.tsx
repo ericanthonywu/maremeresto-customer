@@ -128,10 +128,10 @@ export const TrackingPage: React.FC = () => {
               <i className="fa-solid fa-arrow-left text-sm" aria-hidden="true"></i>
             </Link>
             <div className="min-w-0">
-              <h1 className="font-serif text-2xl font-bold text-stone-900">Lacak Pesanan</h1>
+              <h1 className="font-serif text-2xl font-bold text-stone-900">Lacak Status Pesanan 🛵</h1>
               {order && (
                 <p className="text-xs text-stone-500 truncate">
-                  Nomor: <span className="font-mono font-bold text-stone-800">{order.order_number}</span>
+                  No. Pesanan: <span className="font-mono font-bold text-stone-800">{order.order_number}</span>
                 </p>
               )}
             </div>
@@ -176,12 +176,12 @@ export const TrackingPage: React.FC = () => {
                   </div>
                   <div className="min-w-0">
                     <h2 className="text-sm font-extrabold text-emerald-950">
-                      {isBeingDelivered ? 'Pesanan Sedang Dalam Perjalanan' : 'Butuh Bantuan? Hubungi Kami'}
+                      {isBeingDelivered ? 'Pesanan Sedang Dalam Perjalanan 🛵' : 'Ada Pertanyaan / Butuh Bantuan? 🤗'}
                     </h2>
                     <p className="mt-0.5 text-xs leading-relaxed text-emerald-900">
                       {isBeingDelivered
-                        ? `Apabila ada pertanyaan mengenai lokasi kurir, Anda dapat menghubungi staf cabang ${order.branch.name} melalui WhatsApp.`
-                        : `Bila Anda memiliki pertanyaan atau pesan khusus, staf cabang ${order.branch.name} siap membantu Anda.`}
+                        ? `Bapak/Ibu bisa menanyakan posisi kurir langsung ke staf cabang ${order.branch.name} lewat WhatsApp ya 😊`
+                        : `Jangan ragu untuk menyapa staf cabang ${order.branch.name} jika ada permintaan khusus atau pertanyaan!`}
                     </p>
                   </div>
                 </div>

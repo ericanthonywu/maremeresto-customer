@@ -155,7 +155,7 @@ export const MenuPage: React.FC = () => {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari makanan / minuman..."
+                placeholder="Ketuk di sini untuk cari menu... 🔍"
                 className="pl-9 pr-4 py-2 bg-stone-50 border border-stone-300 rounded-2xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-brand-500 focus:bg-white w-full sm:w-56 transition-all"
               />
             </div>
@@ -166,7 +166,7 @@ export const MenuPage: React.FC = () => {
           <div className="max-w-7xl mx-auto mt-3 p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 flex items-start gap-2">
             <i className="fa-solid fa-circle-info mt-0.5 shrink-0" aria-hidden="true"></i>
             <span>
-              Cabang ini sedang tutup saat ini. Anda tetap bisa memilih hidangan untuk dilihat, atau <Link to="/branches" className="underline font-bold">pilih cabang lain yang buka</Link>.
+              Cabang ini sedang istirahat / tutup 😴. Bapak/Ibu tetap bisa melihat-lihat menu, atau <Link to="/branches" className="underline font-bold">pilih cabang lain yang buka ➔</Link>
             </span>
           </div>
         )}

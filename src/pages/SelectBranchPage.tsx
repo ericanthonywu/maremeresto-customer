@@ -23,13 +23,13 @@ export const SelectBranchPage: React.FC = () => {
         <div className="max-w-3xl mx-auto space-y-4 relative z-10">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-amber-200 border border-white/15 text-xs font-semibold">
             <i className="fa-solid fa-mug-hot" aria-hidden="true"></i>
-            <span>Pesan Online & Pengiriman Rumah</span>
+            <span>Pesan Online & Diantar Sampai Rumah 🛵</span>
           </span>
 
-          <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight">Pilih Cabang / Outlet</h1>
+          <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight">Pilih Cabang Terdekat 🏪</h1>
 
           <p className="text-stone-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            Pilih atau atur lokasi Anda agar kami dapat menampilkan cabang terdekat, estimasi waktu penyajian, serta biaya pengiriman.
+            Yuk atur lokasi tempat tinggal Bapak/Ibu agar kami bisa menunjukkan cabang terdekat, ongkir hemat, dan estimasi waktu antar ☕✨
           </p>
 
           <div className="pt-2">
@@ -43,10 +43,10 @@ export const SelectBranchPage: React.FC = () => {
               ></i>
               <span className="truncate max-w-[16rem] sm:max-w-md">
                 {detecting
-                  ? 'Mencari lokasi Anda...'
+                  ? 'Mencari lokasi Anda... ⏳'
                   : location
                     ? location.address
-                    : 'Pilih Alamat Pengiriman Anda'}
+                    : 'Klik di sini untuk pilih alamat pengiriman 📍'}
               </span>
               <i className="fa-solid fa-chevron-down text-[10px] text-stone-400 shrink-0" aria-hidden="true"></i>
             </button>

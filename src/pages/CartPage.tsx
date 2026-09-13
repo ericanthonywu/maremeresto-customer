@@ -87,10 +87,10 @@ export const CartPage: React.FC = () => {
               <i className="fa-solid fa-arrow-left text-sm" aria-hidden="true"></i>
             </Link>
             <div className="min-w-0">
-              <h1 className="font-serif text-2xl font-bold text-stone-900">Keranjang Pesanan</h1>
+              <h1 className="font-serif text-2xl font-bold text-stone-900">Keranjang Pesanan 🛒</h1>
               {selectedBranch && (
                 <p className="text-xs text-stone-500 truncate">
-                  Cabang: <span className="font-bold text-stone-800">{selectedBranch.name}</span>
+                  Cabang Pilihan: <span className="font-bold text-stone-800">{selectedBranch.name}</span>
                 </p>
               )}
             </div>
@@ -133,9 +133,9 @@ export const CartPage: React.FC = () => {
             >
               <i className="fa-solid fa-cart-shopping"></i>
             </div>
-            <h3 className="font-serif font-bold text-lg text-stone-900">Keranjang Anda kosong</h3>
+            <h3 className="font-serif font-bold text-lg text-stone-900">Keranjang Masih Kosong 😊</h3>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
-              Jelajahi menu kami dan tambahkan pesanan pertama Anda.
+              Yuk lihat-lihat menu hidangan lezat dan minuman segar kami!
             </p>
             <Link
               to="/menu"
@@ -165,7 +165,7 @@ export const CartPage: React.FC = () => {
               <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
                 <div className="flex items-center gap-2 text-stone-900 font-bold text-xs">
                   <i className="fa-solid fa-ticket text-brand-600" aria-hidden="true"></i>
-                  <span>Kode promo</span>
+                  <span>Voucher Diskon / Promo 🎟️</span>
                 </div>
 
                 <div className="flex gap-2">
@@ -263,8 +263,7 @@ export const CartPage: React.FC = () => {
                   disabled={belowMinimum || !isAllAvailable}
                   className="w-full py-3.5 mt-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs"
                 >
-                  <span>{!isAllAvailable ? 'Ada menu yang stoknya habis' : 'Lanjut ke Pembayaran / Kasir'}</span>
-                  <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
+                  <span>{!isAllAvailable ? 'Ada menu yang stoknya habis ⚠️' : 'Lanjut Bayar Pesanan ➔'}</span>
                 </button>
               </div>
             </div>

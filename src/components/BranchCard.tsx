@@ -81,18 +81,18 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
             {branch.is_open_now ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
-                Buka sekarang
+                Buka Sekarang 🟢
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-400/30 text-[11px] font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400" aria-hidden="true"></span>
-                Tutup
+                Sedang Tutup 🔴
               </span>
             )}
 
             {quote?.is_nearest && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-400 text-stone-950 text-[10px] font-extrabold uppercase tracking-wide shadow">
-                <i className="fa-solid fa-location-dot" aria-hidden="true"></i> Terdekat
+                📍 Paling Dekat
               </span>
             )}
           </div>
@@ -155,7 +155,7 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
               className="w-full rounded-2xl p-3 border border-dashed border-stone-300 bg-stone-50 hover:bg-stone-100 text-xs text-stone-600 flex items-center justify-center gap-2 transition-colors"
             >
               <i className="fa-solid fa-location-crosshairs text-brand-600" aria-hidden="true"></i>
-              <span className="font-semibold">Pilih alamat untuk melihat ongkos kirim</span>
+              <span className="font-semibold">Atur alamat untuk lihat ongkir hemat 📍</span>
             </button>
           )}
         </div>
@@ -167,8 +167,7 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
           disabled={!branch.is_open_now}
           className={`w-full py-3 ${theme.btn} disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2`}
         >
-          <span>{branch.is_open_now ? 'Pilih Cabang Ini & Lihat Menu' : 'Cabang Sedang Tutup'}</span>
-          {branch.is_open_now && <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>}
+          <span>{branch.is_open_now ? 'Pilih Cabang Ini & Lihat Menu ➔' : 'Cabang Sedang Tutup 😴'}</span>
         </button>
       </div>
     </div>
