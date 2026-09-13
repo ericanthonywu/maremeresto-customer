@@ -27,15 +27,42 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// A rejected token means the 30-day session lapsed. Clear it so the next
-// checkout re-authenticates instead of retrying with a dead credential.
+// Auto-retry configuration for weak network connections / old mobile devices
+const MAX_RETRIES = 2
+const INITIAL_RETRY_DELAY = 1000
+
 api.interceptors.response.use(
   (res) => res,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
+      return Promise.reject(error)
     }
+
+    const config = error.config
+    if (!config) return Promise.reject(error)
+
+    // Only retry on network errors, timeouts, or temporary server errors (502, 503, 504)
+    const isNetworkOrTimeout = !error.response || error.code === 'ECONNABORTED'
+    const isServerError = error.response?.status >= 502 && error.response?.status <= 504
+
+    // Retry safe GET requests or requests with an Idempotency-Key
+    const isSafeOrIdempotent =
+      config.method?.toUpperCase() === 'GET' || Boolean(config.headers?.['Idempotency-Key'])
+
+    if ((isNetworkOrTimeout || isServerError) && isSafeOrIdempotent) {
+      config.__retryCount = config.__retryCount || 0
+
+      if (config.__retryCount < MAX_RETRIES) {
+        config.__retryCount += 1
+        const backoff = INITIAL_RETRY_DELAY * Math.pow(2, config.__retryCount - 1)
+        const jitter = Math.random() * 200
+        await new Promise((resolve) => setTimeout(resolve, backoff + jitter))
+        return api(config)
+      }
+    }
+
     return Promise.reject(error)
   }
 )
