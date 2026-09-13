@@ -9,6 +9,7 @@ import { MenuItemCard } from '../components/MenuItemCard'
 import { StickyCartSidebar } from '../components/StickyCartSidebar'
 import { FloatingCartBar } from '../components/FloatingCartBar'
 import { HalalCertificateBadge } from '../components/HalalCertificateBadge'
+import { MenuSkeletonGrid } from '../components/Skeleton'
 
 export const MenuPage: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -184,10 +185,7 @@ export const MenuPage: React.FC = () => {
         <div className="flex gap-8 items-start">
           <div className="flex-1 min-w-0">
             {isBusy ? (
-              <div className="flex justify-center py-20">
-                <i className="fa-solid fa-circle-notch fa-spin text-3xl text-brand-600" aria-hidden="true"></i>
-                <span className="sr-only">Memuat menu</span>
-              </div>
+              <MenuSkeletonGrid />
             ) : error ? (
               <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 shadow-sm space-y-3">
                 <i className="fa-solid fa-triangle-exclamation text-4xl text-amber-500" aria-hidden="true"></i>

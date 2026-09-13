@@ -6,6 +6,7 @@ import type { Order } from '../types'
 import { RouteProgressBanner } from '../components/RouteProgressBanner'
 import { OrderTimeline } from '../components/OrderTimeline'
 import { OrderFeedbackCard } from '../components/OrderFeedbackCard'
+import { OrderTrackingSkeleton } from '../components/Skeleton'
 
 const CANCEL_WINDOW_MS = 5 * 60 * 1000
 
@@ -169,10 +170,7 @@ export const TrackingPage: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="py-20 flex justify-center">
-            <i className="fa-solid fa-circle-notch fa-spin text-3xl text-brand-600" aria-hidden="true"></i>
-            <span className="sr-only">Memuat</span>
-          </div>
+          <OrderTrackingSkeleton />
         ) : order ? (
           <div className="space-y-6">
             <RouteProgressBanner
