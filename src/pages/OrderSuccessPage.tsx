@@ -19,6 +19,7 @@ export const OrderSuccessPage: React.FC = () => {
   const [retrying, setRetrying] = useState(false)
 
   const startedAt = useRef(Date.now())
+  const openedWaRef = useRef<string | null>(null)
 
   const load = useCallback(async () => {
     if (!orderId) return
@@ -43,6 +44,16 @@ export const OrderSuccessPage: React.FC = () => {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (order && order.branch?.whatsapp_number && openedWaRef.current !== order.id) {
+      openedWaRef.current = order.id
+      const phone = order.branch.whatsapp_number.replace(/\D/g, '')
+      const message = encodeURIComponent(`Halo ${order.branch.name}, saya sudah membuat pesanan ${order.order_number}.`)
+      const waUrl = `https://wa.me/${phone}?text=${message}`
+      window.open(waUrl, '_blank', 'noopener,noreferrer')
+    }
+  }, [order])
 
   // Midtrans confirms payment through a server-to-server webhook, so this page
   // polls until the order reflects it rather than assuming success.
