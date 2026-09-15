@@ -19,6 +19,7 @@ export const OrderSuccessPage: React.FC = () => {
   const [retrying, setRetrying] = useState(false)
 
   const startedAt = useRef(Date.now())
+  const openedWaRef = useRef<string | null>(null)
 
   const load = useCallback(async () => {
     if (!orderId) return
@@ -43,6 +44,16 @@ export const OrderSuccessPage: React.FC = () => {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (order && order.branch?.whatsapp_number && openedWaRef.current !== order.id) {
+      openedWaRef.current = order.id
+      const phone = order.branch.whatsapp_number.replace(/\D/g, '')
+      const message = encodeURIComponent(`Halo ${order.branch.name}, saya sudah membuat pesanan ${order.order_number}.`)
+      const waUrl = `https://wa.me/${phone}?text=${message}`
+      window.open(waUrl, '_blank', 'noopener,noreferrer')
+    }
+  }, [order])
 
   // Midtrans confirms payment through a server-to-server webhook, so this page
   // polls until the order reflects it rather than assuming success.
@@ -128,10 +139,10 @@ export const OrderSuccessPage: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-                    Pembayaran diterima!
+                    Pembayaran Berhasil Diterima! 🎉
                   </h1>
                   <p className="text-xs sm:text-sm text-stone-500">
-                    Outlet {order.branch?.name} sudah menerima pesanan Anda dan mulai menyiapkannya.
+                    Terima kasih banyak! Tim cabang {order.branch?.name} sedang siap meracik hidangan lezat pesanan Anda dengan hangat 😊
                   </p>
                 </div>
               </>
@@ -145,11 +156,10 @@ export const OrderSuccessPage: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-                    Menunggu pembayaran
+                    Menunggu Pembayaran ⏳
                   </h1>
                   <p className="text-xs sm:text-sm text-stone-500">
-                    Pesanan Anda sudah dibuat, tetapi belum dibayar. Selesaikan pembayaran agar outlet
-                    dapat mulai menyiapkannya.
+                    Pesanan Bapak/Ibu sudah kami catat. Silakan selesaikan pembayaran agar dapur cabang kami bisa langsung mulai memasak 🍳
                   </p>
                 </div>
 
@@ -260,7 +270,7 @@ export const OrderSuccessPage: React.FC = () => {
                   className="w-full py-3.5 bg-stone-900 hover:bg-black text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                 >
                   <i className="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
-                  <span>Lacak pesanan</span>
+                  <span>Lacak Status Pesanan Saya 🛵</span>
                 </Link>
 
                 {/* The outlet's real WhatsApp number, from branch settings. */}

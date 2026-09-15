@@ -60,18 +60,15 @@ export const SelectBranchPage: React.FC = () => {
 
       <section className="hero-bg text-white py-12 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden">
         <div className="max-w-3xl mx-auto space-y-4 relative z-10">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 text-amber-200 border border-white/15 text-xs font-semibold backdrop-blur-sm">
-            <i className="fa-solid fa-fire-flame-curved text-amber-300" aria-hidden="true"></i>
-            <span>Kuliner Murah & Makanan Hangat Solo / Surakarta</span>
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-amber-200 border border-white/15 text-xs font-semibold">
+            <i className="fa-solid fa-mug-hot" aria-hidden="true"></i>
+            <span>Pesan Online & Diantar Sampai Rumah 🛵</span>
           </span>
 
-          <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
-            Makanan Hangat & Murah di Surakarta / Solo
-          </h1>
+          <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight">Pilih Cabang Terdekat 🏪</h1>
 
           <p className="text-stone-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            Cari tempat makan terdekat di Solo dengan sajian hangat, lezat, dan harga ramah di kantong?
-            Pilih outlet terdekat di bawah ini untuk melihat menu, estimasi waktu, dan ongkos kirim real-time.
+            Yuk atur lokasi tempat tinggal Bapak/Ibu agar kami bisa menunjukkan cabang terdekat, ongkir hemat, dan estimasi waktu antar ☕✨
           </p>
 
           <div className="pt-2">
@@ -85,17 +82,17 @@ export const SelectBranchPage: React.FC = () => {
               ></i>
               <span className="truncate max-w-[16rem] sm:max-w-md">
                 {detecting
-                  ? 'Mendeteksi lokasi Anda...'
+                  ? 'Mencari lokasi Anda... ⏳'
                   : location
                     ? location.address
-                    : 'Tentukan lokasi Anda di Solo'}
+                    : 'Klik di sini untuk pilih alamat pengiriman 📍'}
               </span>
               <i className="fa-solid fa-chevron-down text-[10px] text-stone-400 shrink-0" aria-hidden="true"></i>
             </button>
 
             {!location && !detecting && (
               <p className="text-[11px] text-amber-200/80 mt-2">
-                Tentukan lokasi untuk menampilkan ongkos kirim presisi dari outlet terdekat di Surakarta.
+                Biaya pengiriman akan muncul setelah Anda memilih atau memasukkan alamat.
               </p>
             )}
           </div>

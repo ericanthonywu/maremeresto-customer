@@ -85,19 +85,19 @@ export const CheckoutPage: React.FC = () => {
 
   /** Everything that must be true before the pay button does anything. */
   const blocker = useMemo<string | null>(() => {
-    if (items.length === 0) return 'Keranjang pesanan kosong.'
-    if (!activeBranch) return 'Pilih outlet terlebih dahulu.'
-    if (!activeBranch.is_open_now) return `${activeBranch.name} sedang tutup. Pilih outlet lain.`
+    if (items.length === 0) return 'Keranjang pesanan masih kosong.'
+    if (!activeBranch) return 'Pilih cabang terlebih dahulu.'
+    if (!activeBranch.is_open_now) return `${activeBranch.name} sedang tutup saat ini. Silakan pilih cabang lain.`
     if (unavailableItems.length > 0) {
-      return `${unavailableItems[0].cartItem.name} stoknya habis di ${activeBranch.name}. Silakan ganti outlet atau hapus dari keranjang.`
+      return `Stok menu ${unavailableItems[0].cartItem.name} sedang habis di ${activeBranch.name}. Silakan pilih cabang lain atau hapus menu ini.`
     }
-    if (isDelivery && !location) return 'Tentukan alamat pengantaran terlebih dahulu.'
-    if (isDelivery && !quote) return 'Ongkos kirim belum dapat dihitung. Coba tentukan ulang alamat Anda.'
+    if (isDelivery && !location) return 'Pilih atau atur alamat pengiriman terlebih dahulu.'
+    if (isDelivery && !quote) return 'Biaya pengiriman belum dapat dihitung. Silakan atur kembali alamat Anda.'
     if (isDelivery && quote && !quote.within_radius) {
-      return `Alamat Anda ${quote.distance_km} km dari ${activeBranch.name}, di luar jangkauan ${quote.max_radius_km} km. Pilih outlet lain atau ambil sendiri.`
+      return `Alamat Anda (${quote.distance_km} km) berada di luar jangkauan pengiriman cabang ${activeBranch.name} (maksimal ${quote.max_radius_km} km). Anda bisa memilih cabang lain atau memilih opsi ambil sendiri.`
     }
-    if (orderType === 'scheduled' && !scheduledTime) return 'Pilih jam pengantaran.'
-    if (isDelivery && !addressDetail.trim()) return 'Detail alamat & patokan wajib diisi.'
+    if (orderType === 'scheduled' && !scheduledTime) return 'Pilih jam pengiriman pesanan.'
+    if (isDelivery && !addressDetail.trim()) return 'Detail alamat & patokan rumah wajib diisi.'
     return null
   }, [items.length, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime, addressDetail])
 
@@ -105,10 +105,10 @@ export const CheckoutPage: React.FC = () => {
   const incompleteFields = useMemo(() => {
     const fields: string[] = []
     if (!name.trim()) fields.push('Nama pemesan')
-    if (!normalizePhone(phone).valid) fields.push('Nomor WhatsApp yang valid')
-    if (isDelivery && !location) fields.push('Titik lokasi pengantaran')
-    if (isDelivery && !addressDetail.trim()) fields.push('Detail alamat & patokan')
-    if (orderType === 'scheduled' && !scheduledTime) fields.push('Jam pengantaran')
+    if (!normalizePhone(phone).valid) fields.push('Nomor WhatsApp yang benar')
+    if (isDelivery && !location) fields.push('Alamat lokasi pengiriman')
+    if (isDelivery && !addressDetail.trim()) fields.push('Detail alamat & patokan rumah')
+    if (orderType === 'scheduled' && !scheduledTime) fields.push('Jam pengiriman')
     return fields
   }, [name, phone, isDelivery, location, addressDetail, orderType, scheduledTime])
 
@@ -233,8 +233,8 @@ export const CheckoutPage: React.FC = () => {
             <i className="fa-solid fa-arrow-left text-sm" aria-hidden="true"></i>
           </Link>
           <div>
-            <h1 className="font-serif text-2xl font-bold text-stone-900">Kasir & Pembayaran</h1>
-            <p className="text-xs text-stone-500">Periksa outlet, alamat, dan rincian biaya Anda</p>
+            <h1 className="font-serif text-2xl font-bold text-stone-900">Penyelesaian Pesanan 💳</h1>
+            <p className="text-xs text-stone-500">Mohon periksa cabang pilihan, alamat pengiriman, dan rincian pesanan Anda 😊</p>
           </div>
         </div>
 
@@ -253,12 +253,12 @@ export const CheckoutPage: React.FC = () => {
           <form noValidate onSubmit={handleSubmitOrder} className="space-y-5">
             {/* ---- Order type ---- */}
             <fieldset className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
-              <legend className="font-serif font-bold text-sm text-stone-900">Metode penerimaan</legend>
+              <legend className="font-serif font-bold text-sm text-stone-900">Cara Penerimaan Pesanan 🛵</legend>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { id: 'delivery', label: 'Diantar', icon: 'fa-motorcycle' },
-                  { id: 'pickup', label: 'Ambil sendiri', icon: 'fa-person-walking' },
-                  { id: 'scheduled', label: 'Jadwalkan', icon: 'fa-clock' },
+                  { id: 'delivery', label: 'Diantar ke Rumah 🛵', icon: 'fa-motorcycle' },
+                  { id: 'pickup', label: 'Ambil di Cabang 🚶', icon: 'fa-person-walking' },
+                  { id: 'scheduled', label: 'Jadwalkan Jam ⏰', icon: 'fa-clock' },
                 ] as const).map((opt) => (
                   <button
                     key={opt.id}
@@ -307,13 +307,13 @@ export const CheckoutPage: React.FC = () => {
             {isDelivery && (
               <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-serif font-bold text-sm text-stone-900">Alamat pengantaran</h3>
+                  <h3 className="font-serif font-bold text-sm text-stone-900">Alamat Pengiriman Rumah 🏠</h3>
                   <button
                     type="button"
                     onClick={() => setLocationOpen(true)}
                     className="text-xs text-brand-600 hover:underline font-bold shrink-0"
                   >
-                    {location ? 'Ubah lokasi' : 'Tentukan lokasi'}
+                    {location ? 'Ubah Alamat 📍' : 'Pilih Alamat 📍'}
                   </button>
                 </div>
 
@@ -322,8 +322,8 @@ export const CheckoutPage: React.FC = () => {
                     <i className="fa-solid fa-location-dot text-brand-600 mt-0.5 shrink-0" aria-hidden="true"></i>
                     <div className="min-w-0 text-xs">
                       <span className="block text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                        Titik pengantaran
-                        {location.source === 'gps' ? ' · GPS' : ' · pencarian alamat'}
+                        Lokasi Pengiriman
+                        {location.source === 'gps' ? ' · Lokasi Otomatis' : ' · Hasil Pencarian'}
                       </span>
                       <span className="block text-stone-800 font-medium break-words">{location.address}</span>
                     </div>
@@ -336,9 +336,9 @@ export const CheckoutPage: React.FC = () => {
                   >
                     <i className="fa-solid fa-location-crosshairs text-brand-600 text-lg shrink-0" aria-hidden="true"></i>
                     <span className="text-xs">
-                      <span className="block font-bold text-stone-900">Tentukan lokasi Anda</span>
+                      <span className="block font-bold text-stone-900">Pilih Alamat Pengiriman Anda</span>
                       <span className="block text-stone-500 text-[11px]">
-                        Ongkos kirim dihitung dari jarak sebenarnya
+                        Biaya pengiriman dihitung berdasarkan jarak cabang ke alamat Anda
                       </span>
                     </span>
                   </button>
@@ -346,7 +346,7 @@ export const CheckoutPage: React.FC = () => {
 
                 <div>
                   <label htmlFor="address-detail" className="block text-xs font-semibold text-stone-700 mb-1">
-                    Detail alamat & patokan <span className="text-red-500">*</span>
+                    Detail Alamat & Patokan Rumah <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="address-detail"
@@ -355,11 +355,11 @@ export const CheckoutPage: React.FC = () => {
                     maxLength={300}
                     value={addressDetail}
                     onChange={(e) => setAddressDetail(e.target.value)}
-                    placeholder="Contoh: ketuk 3x, nomor 14a"
+                    placeholder="Contoh: Rumah pagar hitam, no. 14A, depan masjid"
                     className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
                   />
-                  <p className="text-[10px] text-stone-400 mt-1">
-                    Alamat pengantaran utama sudah menggunakan titik lokasi di atas. Isi nomor rumah atau patokan agar kurir mudah menemukan lokasi Anda.
+                  <p className="text-[10px] text-stone-500 mt-1">
+                    Isi nomor rumah atau patokan penting agar kurir dapat menghantarkan pesanan Anda dengan tepat dan mudah.
                   </p>
                 </div>
               </div>
@@ -488,11 +488,11 @@ export const CheckoutPage: React.FC = () => {
 
             {/* ---- Customer details ---- */}
             <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-4">
-              <h3 className="font-serif font-bold text-sm text-stone-900">Informasi pemesan</h3>
+              <h3 className="font-serif font-bold text-sm text-stone-900">Data Pemesan 👤</h3>
 
               <div>
                 <label htmlFor="cust-name" className="block text-xs font-semibold text-stone-700 mb-1">
-                  Nama pemesan *
+                  Nama Pemesan / Panggilan *
                 </label>
                 <input
                   id="cust-name"
@@ -501,7 +501,7 @@ export const CheckoutPage: React.FC = () => {
                   maxLength={100}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Nama lengkap Anda"
+                  placeholder="Contoh: Pak Budi / Bu Siti"
                   className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
                 />
               </div>
@@ -509,7 +509,7 @@ export const CheckoutPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1 gap-2">
                   <label htmlFor="cust-phone" className="block text-xs font-semibold text-stone-700">
-                    WhatsApp *
+                    Nomor WhatsApp Active *
                   </label>
                   <span className="text-[10px] text-stone-400 font-mono">08... atau +628...</span>
                 </div>
@@ -553,27 +553,27 @@ export const CheckoutPage: React.FC = () => {
 
               <div className="space-y-1.5 text-stone-600">
                 <div className="flex justify-between">
-                  <span>Subtotal ({items.length} item)</span>
+                  <span>Subtotal ({items.length} menu)</span>
                   <span className="font-bold text-stone-900">{formatRupiah(subtotal)}</span>
                 </div>
 
                 {isDelivery && (
                   <div className="flex justify-between">
-                    <span>Ongkir{quote ? ` (${quote.distance_km} km)` : ''}</span>
+                    <span>Biaya Pengiriman{quote ? ` (${quote.distance_km} km)` : ''}</span>
                     <span className="font-bold text-stone-900">
-                      {quote ? (deliveryFee === 0 ? 'Gratis' : formatRupiah(deliveryFee)) : 'Belum dihitung'}
+                      {quote ? (deliveryFee === 0 ? 'Gratis Kirim' : formatRupiah(deliveryFee)) : 'Belum dihitung'}
                     </span>
                   </div>
                 )}
 
                 <div className="flex justify-between">
-                  <span>Biaya layanan</span>
+                  <span>Biaya Layanan Aplikasi</span>
                   <span className="font-bold text-stone-900">{formatRupiah(serviceFee)}</span>
                 </div>
 
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-bold">
-                    <span>Diskon ({appliedPromo})</span>
+                    <span>Potongan Harga / Promo ({appliedPromo})</span>
                     <span>-{formatRupiah(discount)}</span>
                   </div>
                 )}
@@ -626,7 +626,7 @@ export const CheckoutPage: React.FC = () => {
                 ) : (
                   <>
                     <i className="fa-solid fa-lock text-xs" aria-hidden="true"></i>
-                    <span>Bayar {formatRupiah(grandTotal)}</span>
+                    <span>Lanjut Bayar {formatRupiah(grandTotal)} 💳</span>
                   </>
                 )}
               </button>
