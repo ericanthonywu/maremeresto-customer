@@ -69,7 +69,7 @@ export const AppHeader: React.FC = () => {
             </div>
             <div>
               <span className="font-serif font-bold text-lg text-stone-900 leading-none block">Mareme Group</span>
-              <span className="text-[11px] text-brand-600 font-medium tracking-wide">Online Ordering</span>
+              <span className="text-[11px] text-brand-600 font-medium tracking-wide">Pesan Makanan Online ☕</span>
             </div>
           </Link>
 
@@ -96,7 +96,7 @@ export const AppHeader: React.FC = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
               </span>
-              <span className="hidden sm:inline">Pesanan aktif</span>
+              <span className="hidden sm:inline">Pesanan Sedang Diproses 🛵</span>
               <span className="font-mono text-brand-700">
                 {activeOrder.order_number.split('-').pop()}
               </span>
