@@ -83,6 +83,8 @@ export const CheckoutPage: React.FC = () => {
   const serviceFee = quote?.service_fee ?? 0
   const grandTotal = Math.max(0, subtotal + deliveryFee + serviceFee - discount)
 
+  const isStoreClosed = !activeBranch || !activeBranch.is_open_now
+
   /** Everything that must be true before the pay button does anything. */
   const blocker = useMemo<string | null>(() => {
     if (items.length === 0) return 'Keranjang pesanan masih kosong.'
@@ -614,15 +616,40 @@ export const CheckoutPage: React.FC = () => {
                 </div>
               )}
 
+              {isStoreClosed && (
+                <div
+                  className="p-3.5 rounded-2xl text-xs font-semibold bg-red-50 border border-red-200 text-red-700 flex items-start gap-2.5"
+                  role="alert"
+                >
+                  <i className="fa-solid fa-store-slash mt-0.5 shrink-0 text-sm" aria-hidden="true"></i>
+                  <div>
+                    <p className="font-bold">{activeBranch?.name ?? 'Cabang ini'} sedang tutup saat ini.</p>
+                    <p className="font-normal text-[11px] text-red-600 mt-0.5">
+                      Tombol bayar dinonaktifkan. Silakan pilih cabang lain yang sedang buka di bagian atas untuk melanjutkan pemesanan.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm tracking-wide"
+                disabled={isSubmitting || isStoreClosed}
+                aria-disabled={isSubmitting || isStoreClosed}
+                className={`w-full py-4 font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm tracking-wide ${
+                  isStoreClosed
+                    ? 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none border border-stone-300'
+                    : 'bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white'
+                }`}
               >
                 {isSubmitting ? (
                   <>
                     <i className="fa-solid fa-circle-notch fa-spin text-base" aria-hidden="true"></i>
                     <span>{submitStage || 'Memproses...'}</span>
+                  </>
+                ) : isStoreClosed ? (
+                  <>
+                    <i className="fa-solid fa-door-closed text-sm" aria-hidden="true"></i>
+                    <span>Toko Sedang Tutup ({activeBranch?.name ?? 'Cabang'}) 😴</span>
                   </>
                 ) : (
                   <>

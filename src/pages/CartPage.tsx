@@ -258,12 +258,34 @@ export const CartPage: React.FC = () => {
                   <span className="text-brand-700 text-base">{formatRupiah(grandTotal)}</span>
                 </div>
 
+                {selectedBranch && !selectedBranch.is_open_now && (
+                  <div className="p-3 mt-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-start gap-2">
+                    <i className="fa-solid fa-store-slash mt-0.5 shrink-0 text-sm" aria-hidden="true"></i>
+                    <div>
+                      <p className="font-bold">{selectedBranch.name} sedang tutup saat ini.</p>
+                      <p className="font-normal text-[11px] text-red-600 mt-0.5">
+                        Silakan ganti cabang yang sedang buka di menu atas untuk memesan.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => navigate('/checkout')}
-                  disabled={belowMinimum || !isAllAvailable}
-                  className="w-full py-3.5 mt-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs"
+                  disabled={belowMinimum || !isAllAvailable || Boolean(selectedBranch && !selectedBranch.is_open_now)}
+                  className={`w-full py-3.5 mt-3 font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs ${
+                    selectedBranch && !selectedBranch.is_open_now
+                      ? 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
+                      : 'bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white'
+                  }`}
                 >
-                  <span>{!isAllAvailable ? 'Ada menu yang stoknya habis ⚠️' : 'Lanjut Bayar Pesanan ➔'}</span>
+                  <span>
+                    {selectedBranch && !selectedBranch.is_open_now
+                      ? 'Cabang Sedang Tutup 😴'
+                      : !isAllAvailable
+                        ? 'Ada menu yang stoknya habis ⚠️'
+                        : 'Lanjut Bayar Pesanan ➔'}
+                  </span>
                 </button>
               </div>
             </div>

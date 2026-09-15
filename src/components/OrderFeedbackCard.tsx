@@ -1,31 +1,197 @@
 import React, { useState } from 'react'
 import { customerApi, errorMessage } from '../api/client'
-import type { Order } from '../types'
+import type { Order, OrderFeedback, OrderItemFeedback } from '../types'
+import { FeedbackReasonInput } from './FeedbackReasonInput'
 
 interface OrderFeedbackCardProps {
   order: Order
-  onSaved: (feedback: NonNullable<Order['feedback']>) => void
+  onSaved: (feedback: OrderFeedback) => void
 }
 
+// Suggestions for restaurant rating reasons
+const RESTO_POSITIVE_SUGGESTIONS = [
+  'Makanan sangat lezat dan pas',
+  'Porsi pas dan mengenyangkan',
+  'Kemasan rapi dan higienis',
+  'Makanan masih hangat sampai tujuan',
+  'Bumbu meresap sempurna',
+  'Pelayanan resto cepat dan ramah',
+  'Kualitas bahan segar',
+  'Sesuai catatan pesanan',
+]
+
+const RESTO_CONSTRUCTIVE_SUGGESTIONS = [
+  'Rasa makanan kurang bumbu',
+  'Porsi terlalu sedikit',
+  'Kemasan bocor atau rusak',
+  'Makanan sudah dingin saat sampai',
+  'Waktu penyiapan terlalu lama',
+  'Pesanan tidak sesuai catatan',
+  'Terlalu berminyak atau asin',
+  'Kurang higienis',
+]
+
+const RESTO_ALL_SUGGESTIONS = [
+  ...RESTO_POSITIVE_SUGGESTIONS,
+  ...RESTO_CONSTRUCTIVE_SUGGESTIONS,
+]
+
+// Suggestions for ordered menu items
+const ITEM_POSITIVE_SUGGESTIONS = [
+  'Enak banget, rasa otentik',
+  'Porsi mantap & kenyang',
+  'Bumbu meresap & gurih',
+  'Pedasnya pas & mantap',
+  'Daging empuk & lembut',
+  'Bahan segar & wangi',
+  'Pasti pesan lagi!',
+]
+
+const ITEM_CONSTRUCTIVE_SUGGESTIONS = [
+  'Kurang berasa bumbunya',
+  'Porsi agak sedikit',
+  'Terlalu asin atau manis',
+  'Tekstur agak alot / keras',
+  'Kurang pedas',
+  'Suhu kurang hangat',
+  'Beda dengan foto menu',
+]
+
+const ITEM_ALL_SUGGESTIONS = [
+  ...ITEM_POSITIVE_SUGGESTIONS,
+  ...ITEM_CONSTRUCTIVE_SUGGESTIONS,
+]
+
+// Suggestions for application experience
+const APP_POSITIVE_SUGGESTIONS = [
+  'Aplikasi sangat cepat dan responsif',
+  'Navigasi mudah dan jelas',
+  'Proses pemesanan sangat praktis',
+  'Pelacakan order realtime & akurat',
+  'Pembayaran QRIS lancar',
+  'Tampilan UI bersih dan modern',
+]
+
+const APP_CONSTRUCTIVE_SUGGESTIONS = [
+  'Aplikasi terasa agak lambat',
+  'Peta lokasi pengiriman sulit diatur',
+  'Proses pembayaran sempat kendala',
+  'Notifikasi status lambat terupdate',
+  'Tampilan kurang pas di layar HP',
+  'Menu loading agak lama',
+]
+
+const APP_ALL_SUGGESTIONS = [
+  ...APP_POSITIVE_SUGGESTIONS,
+  ...APP_CONSTRUCTIVE_SUGGESTIONS,
+]
+
 export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onSaved }) => {
-  const [rating, setRating] = useState(order.feedback?.rating ?? 0)
-  const [comment, setComment] = useState(order.feedback?.comment ?? '')
+  const existingFeedback = order.feedback
+
+  // Initialize state from existing feedback or defaults
+  const [restoRating, setRestoRating] = useState<number>(
+    existingFeedback?.resto_rating ?? existingFeedback?.rating ?? 0
+  )
+  const [restoReason, setRestoReason] = useState<string>(existingFeedback?.resto_reason ?? '')
+
+  const [appRating, setAppRating] = useState<number>(existingFeedback?.app_rating ?? 0)
+  const [appReason, setAppReason] = useState<string>(existingFeedback?.app_reason ?? '')
+
+  const [comment, setComment] = useState<string>(existingFeedback?.comment ?? '')
+
+  // Item ratings state: record of order_item_id -> { rating, reason }
+  const [itemFeedbacks, setItemFeedbacks] = useState<
+    Record<string, { rating: number; reason: string }>
+  >(() => {
+    const map: Record<string, { rating: number; reason: string }> = {}
+    const existingItems = existingFeedback?.items_feedback ?? []
+
+    order.items?.forEach((item) => {
+      const match = existingItems.find(
+        (it) => it.order_item_id === item.id || it.item_name === item.item_name
+      )
+      map[item.id] = {
+        rating: match?.rating ?? item.rating ?? 0,
+        reason: match?.reason ?? item.review_reason ?? '',
+      }
+    })
+    return map
+  })
+
+  const [isEditing, setIsEditing] = useState<boolean>(!existingFeedback)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${order.branch?.name ?? 'Mareme Group'} ${order.branch?.address ?? ''}`
   )}`
 
-  const save = async () => {
-    if (!rating) {
-      setError('Pilih rating terlebih dahulu.')
+  const handleItemRatingChange = (itemId: string, rating: number) => {
+    setItemFeedbacks((prev) => ({
+      ...prev,
+      [itemId]: {
+        rating,
+        reason: prev[itemId]?.reason ?? '',
+      },
+    }))
+    setError(null)
+  }
+
+  const handleItemReasonChange = (itemId: string, reason: string) => {
+    setItemFeedbacks((prev) => ({
+      ...prev,
+      [itemId]: {
+        rating: prev[itemId]?.rating ?? 0,
+        reason,
+      },
+    }))
+  }
+
+  const handleSave = async () => {
+    const hasResto = restoRating > 0
+    const hasApp = appRating > 0
+    const hasAnyItem = Object.values(itemFeedbacks).some((it) => it.rating > 0)
+
+    if (!hasResto && !hasApp && !hasAnyItem) {
+      setError('Silakan berikan rating minimal untuk resto, aplikasi, atau salah satu menu.')
       return
     }
+
     setSaving(true)
     setError(null)
+    setSuccessMsg(null)
+
     try {
-      onSaved(await customerApi.submitFeedback(order.id, rating, comment.trim()))
+      const itemsPayload: OrderItemFeedback[] = (order.items ?? [])
+        .map((item) => {
+          const fb = itemFeedbacks[item.id]
+          if (!fb || fb.rating <= 0) return null
+          return {
+            order_item_id: item.id,
+            menu_item_id: item.menu_item_id,
+            item_name: item.item_name,
+            rating: fb.rating,
+            reason: fb.reason.trim(),
+          }
+        })
+        .filter(Boolean) as OrderItemFeedback[]
+
+      const payload = {
+        rating: restoRating || appRating || (itemsPayload[0]?.rating ?? 5),
+        resto_rating: restoRating || undefined,
+        app_rating: appRating || undefined,
+        resto_reason: restoReason.trim(),
+        app_reason: appReason.trim(),
+        comment: comment.trim(),
+        items_feedback: itemsPayload,
+      }
+
+      const result = await customerApi.submitFeedback(order.id, payload)
+      onSaved(result)
+      setIsEditing(false)
+      setSuccessMsg('Terima kasih! Feedback Anda telah berhasil disimpan.')
     } catch (err) {
       setError(errorMessage(err, 'Gagal mengirim feedback.'))
     } finally {
@@ -33,64 +199,427 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     }
   }
 
-  return (
-    <section className="bg-white rounded-3xl p-5 border border-amber-200 shadow-sm space-y-3">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 shrink-0 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
-          <i className="fa-solid fa-star" aria-hidden="true"></i>
-        </div>
-        <div>
-          <h3 className="font-serif font-bold text-sm text-stone-900">Bagaimana pesanan Anda?</h3>
-          <p className="text-[11px] text-stone-500 mt-0.5">Feedback Anda membantu {order.branch?.name ?? 'outlet'} menjadi lebih baik.</p>
-        </div>
-      </div>
+  // Label helper for star ratings
+  const getRatingLabel = (val: number, type: 'resto' | 'app' | 'item') => {
+    if (val === 0) return 'Belum dinilai'
+    if (type === 'app') {
+      switch (val) {
+        case 5:
+          return 'Sangat Cepat & Praktis 🚀'
+        case 4:
+          return 'Bagus & Lancar 👍'
+        case 3:
+          return 'Cukup Baik 🙂'
+        case 2:
+          return 'Agak Kurang Nyaman 😐'
+        case 1:
+          return 'Sering Kendala / Lambat 😞'
+      }
+    }
+    if (type === 'item') {
+      switch (val) {
+        case 5:
+          return 'Sangat Enak! ⭐'
+        case 4:
+          return 'Enak & Puas 👍'
+        case 3:
+          return 'Cukup Enak 🙂'
+        case 2:
+          return 'Biasa Saja 😐'
+        case 1:
+          return 'Kurang Cocok 😞'
+      }
+    }
+    switch (val) {
+      case 5:
+        return 'Luar Biasa Enak! 🌟'
+      case 4:
+        return 'Puas & Enak 👍'
+      case 3:
+        return 'Cukup Baik 🙂'
+      case 2:
+        return 'Kurang Puas 😐'
+      case 1:
+        return 'Mengecewakan 😞'
+    }
+  }
 
-      <div className="flex gap-1" aria-label="Rating pesanan">
-        {[1, 2, 3, 4, 5].map((value) => (
-          <button
-            key={value}
-            type="button"
-            aria-label={`${value} bintang`}
-            aria-pressed={rating === value}
-            onClick={() => { setRating(value); setError(null) }}
-            className={`w-10 h-10 rounded-xl transition-colors ${value <= rating ? 'bg-amber-100 text-amber-500' : 'bg-stone-100 text-stone-300 hover:text-amber-400'}`}
+  // Render Star Buttons
+  const renderStarButtons = (
+    currentRating: number,
+    onSelect: (val: number) => void,
+    type: 'resto' | 'app' | 'item',
+    size: 'sm' | 'md' = 'md'
+  ) => {
+    const isSmall = size === 'sm'
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex gap-1" role="group" aria-label="Bintang Penilaian">
+          {[1, 2, 3, 4, 5].map((val) => (
+            <button
+              key={val}
+              type="button"
+              aria-label={`${val} bintang`}
+              aria-pressed={currentRating === val}
+              onClick={() => onSelect(val)}
+              className={`${
+                isSmall ? 'w-8 h-8 text-sm' : 'w-9 h-9 text-base'
+              } rounded-xl transition-all flex items-center justify-center ${
+                val <= currentRating
+                  ? 'bg-amber-100 text-amber-500 scale-105 shadow-xs'
+                  : 'bg-stone-100 text-stone-300 hover:text-amber-400 hover:bg-stone-200/70'
+              }`}
+            >
+              <i className="fa-solid fa-star" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+        {currentRating > 0 && (
+          <span
+            className={`font-bold ${
+              isSmall ? 'text-[11px]' : 'text-xs'
+            } text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60`}
           >
-            <i className="fa-solid fa-star" aria-hidden="true"></i>
-          </button>
-        ))}
+            {getRatingLabel(currentRating, type)}
+          </span>
+        )}
       </div>
+    )
+  }
 
-      <textarea
-        value={comment}
-        onChange={(event) => setComment(event.target.value)}
-        maxLength={500}
-        rows={2}
-        placeholder="Tambahkan saran untuk kami (opsional)"
-        className="w-full px-3 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white"
-      />
+  // --- READ-ONLY SUMMARY VIEW ---
+  if (!isEditing && existingFeedback) {
+    const ratedItems = existingFeedback.items_feedback ?? []
+    return (
+      <section className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-stone-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 shrink-0 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">
+              <i className="fa-solid fa-circle-check" aria-hidden="true" />
+            </div>
+            <div>
+              <h3 className="font-serif font-bold text-sm text-stone-900">Ulasan Anda Tersimpan</h3>
+              <p className="text-[11px] text-stone-500 mt-0.5">
+                Terima kasih atas penilaian Anda untuk {order.branch?.name ?? 'outlet'}.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-[11px] font-bold text-stone-700 transition-colors flex items-center gap-1.5 shrink-0"
+          >
+            <i className="fa-solid fa-pencil text-[10px] text-stone-500" aria-hidden="true" />
+            Ubah
+          </button>
+        </div>
 
-      {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
+        {successMsg && (
+          <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2">
+            <i className="fa-solid fa-check" aria-hidden="true" />
+            <span>{successMsg}</span>
+          </div>
+        )}
 
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={saving || !rating}
-        className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold"
-      >
-        {saving ? 'Mengirim...' : order.feedback ? 'Perbarui feedback' : 'Kirim feedback'}
-      </button>
+        {/* Rating Breakdown */}
+        <div className="space-y-3">
+          {/* Resto */}
+          {existingFeedback.resto_rating ? (
+            <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-1">
+              <div className="flex items-center justify-between text-xs font-bold text-stone-800">
+                <span className="flex items-center gap-1.5">
+                  <i className="fa-solid fa-store text-brand-600 text-[11px]" aria-hidden="true" />
+                  Restoran ({order.branch?.name ?? 'Resto'})
+                </span>
+                <span className="text-amber-600 flex items-center gap-1 font-mono font-extrabold">
+                  <i className="fa-solid fa-star text-xs" aria-hidden="true" />
+                  {existingFeedback.resto_rating} / 5
+                </span>
+              </div>
+              {existingFeedback.resto_reason && (
+                <p className="text-xs text-stone-600 italic pl-5">
+                  &ldquo;{existingFeedback.resto_reason}&rdquo;
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-1">
+              <div className="flex items-center justify-between text-xs font-bold text-stone-800">
+                <span>Rating Keseluruhan</span>
+                <span className="text-amber-600 flex items-center gap-1 font-mono font-extrabold">
+                  <i className="fa-solid fa-star text-xs" aria-hidden="true" />
+                  {existingFeedback.rating} / 5
+                </span>
+              </div>
+            </div>
+          )}
 
-      {order.feedback && (
+          {/* Menu Items Rated */}
+          {ratedItems.length > 0 && (
+            <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 space-y-2">
+              <span className="text-[11px] font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
+                <i className="fa-solid fa-bowl-food text-amber-500" aria-hidden="true" />
+                Menu yang Dinilai:
+              </span>
+              <div className="space-y-1.5 divide-y divide-stone-200/60">
+                {ratedItems.map((item) => (
+                  <div key={item.order_item_id || item.item_name} className="pt-1.5 first:pt-0">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-stone-800">{item.item_name}</span>
+                      <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
+                        <i className="fa-solid fa-star" aria-hidden="true" />
+                        {item.rating} / 5
+                      </span>
+                    </div>
+                    {item.reason && (
+                      <p className="text-[11px] text-stone-500 italic mt-0.5">
+                        &ldquo;{item.reason}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* App */}
+          {existingFeedback.app_rating && (
+            <div className="p-3 rounded-2xl bg-indigo-50/60 border border-indigo-200/70 space-y-1">
+              <div className="flex items-center justify-between text-xs font-bold text-stone-800">
+                <span className="flex items-center gap-1.5">
+                  <i className="fa-solid fa-mobile-screen-button text-indigo-600 text-[11px]" aria-hidden="true" />
+                  Pengalaman Aplikasi Mareme
+                </span>
+                <span className="text-indigo-600 flex items-center gap-1 font-mono font-extrabold">
+                  <i className="fa-solid fa-star text-xs" aria-hidden="true" />
+                  {existingFeedback.app_rating} / 5
+                </span>
+              </div>
+              {existingFeedback.app_reason && (
+                <p className="text-xs text-stone-600 italic pl-5">
+                  &ldquo;{existingFeedback.app_reason}&rdquo;
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Additional Comment */}
+          {existingFeedback.comment && (
+            <div className="text-xs text-stone-600 bg-stone-50 rounded-xl p-3 border border-stone-200/80">
+              <span className="font-bold text-stone-700 block mb-0.5">Catatan Tambahan:</span>
+              &ldquo;{existingFeedback.comment}&rdquo;
+            </div>
+          )}
+        </div>
+
+        {/* Google Maps link */}
         <a
           href={googleMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-xs font-bold text-stone-700 hover:bg-stone-100"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-stone-50 px-3.5 py-3 text-xs font-bold text-stone-700 hover:bg-stone-100 transition-colors shadow-xs"
         >
-          <i className="fa-brands fa-google text-red-500" aria-hidden="true"></i>
+          <i className="fa-brands fa-google text-red-500" aria-hidden="true" />
           Senang dengan pesanan ini? Beri ulasan di Google Maps
         </a>
+      </section>
+    )
+  }
+
+  // --- FORM / EDITING VIEW ---
+  return (
+    <section className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-5">
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 shrink-0 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+          <i className="fa-solid fa-star" aria-hidden="true" />
+        </div>
+        <div>
+          <h3 className="font-serif font-bold text-sm text-stone-900">
+            {existingFeedback ? 'Perbarui Penilaian Pesanan' : 'Bagaimana Pengalaman Pesanan Anda?'}
+          </h3>
+          <p className="text-[11px] text-stone-500 mt-0.5">
+            Nilai makanan, menu yang dipesan, dan kemudahan aplikasi kami.
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-start gap-2"
+        >
+          <i className="fa-solid fa-circle-exclamation mt-0.5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
       )}
+
+      {/* 1. RESTO RATING & REASON */}
+      <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+              <i className="fa-solid fa-store text-brand-600 text-xs" aria-hidden="true" />
+              Rating Resto ({order.branch?.name ?? 'Outlet'})
+            </h4>
+            <p className="text-[11px] text-stone-500">Kualitas makanan & pelayanan resto</p>
+          </div>
+        </div>
+
+        {renderStarButtons(restoRating, (val) => setRestoRating(val), 'resto', 'md')}
+
+        {restoRating > 0 && (
+          <FeedbackReasonInput
+            label="Alasan penilaian resto:"
+            value={restoReason}
+            onChange={setRestoReason}
+            placeholder="Ketik alasan atau pilih saran autocomplete..."
+            suggestions={RESTO_ALL_SUGGESTIONS}
+            chips={restoRating >= 4 ? RESTO_POSITIVE_SUGGESTIONS.slice(0, 5) : RESTO_CONSTRUCTIVE_SUGGESTIONS.slice(0, 5)}
+          />
+        )}
+      </div>
+
+      {/* 2. ORDERED MENU ITEMS RATING & REASON */}
+      {order.items && order.items.length > 0 && (
+        <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200 space-y-4">
+          <div>
+            <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+              <i className="fa-solid fa-utensils text-amber-600 text-xs" aria-hidden="true" />
+              Rating Menu yang Dipesan ({order.items.length} menu)
+            </h4>
+            <p className="text-[11px] text-stone-500">
+              Beri rating & ulasan untuk masing-masing menu yang Anda nikmati
+            </p>
+          </div>
+
+          <div className="space-y-3 divide-y divide-stone-200/70">
+            {order.items.map((item) => {
+              const currentItem = itemFeedbacks[item.id] || { rating: 0, reason: '' }
+              return (
+                <div key={item.id} className="pt-3 first:pt-0 space-y-2.5">
+                  {/* Item info header */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-6 h-6 rounded-lg bg-stone-200/70 text-stone-600 text-xs flex items-center justify-center shrink-0">
+                        <i className={`fa-solid ${item.item_icon || 'fa-bowl-food'}`} aria-hidden="true" />
+                      </span>
+                      <span className="font-bold text-xs text-stone-800 truncate">
+                        {item.item_name}
+                      </span>
+                      <span className="text-[10px] text-stone-500 font-semibold bg-stone-200/60 px-1.5 py-0.5 rounded">
+                        x{item.quantity}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Item star rating */}
+                  {renderStarButtons(
+                    currentItem.rating,
+                    (val) => handleItemRatingChange(item.id, val),
+                    'item',
+                    'sm'
+                  )}
+
+                  {/* Item reason input with autocomplete */}
+                  {currentItem.rating > 0 && (
+                    <FeedbackReasonInput
+                      label={`Alasan untuk ${item.item_name}:`}
+                      value={currentItem.reason}
+                      onChange={(reason) => handleItemReasonChange(item.id, reason)}
+                      placeholder={`Komentar untuk ${item.item_name}...`}
+                      suggestions={ITEM_ALL_SUGGESTIONS}
+                      chips={
+                        currentItem.rating >= 4
+                          ? ITEM_POSITIVE_SUGGESTIONS.slice(0, 4)
+                          : ITEM_CONSTRUCTIVE_SUGGESTIONS.slice(0, 4)
+                      }
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 3. APPLICATION EXPERIENCE RATING & REASON */}
+      <div className="p-4 rounded-2xl bg-indigo-50/40 border border-indigo-200/70 space-y-3">
+        <div>
+          <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+            <i className="fa-solid fa-mobile-screen text-indigo-600 text-xs" aria-hidden="true" />
+            Rating Aplikasi Mareme
+          </h4>
+          <p className="text-[11px] text-stone-500">
+            Kemudahan pemesanan, kecepatan aplikasi, dan proses pembayaran
+          </p>
+        </div>
+
+        {renderStarButtons(appRating, (val) => setAppRating(val), 'app', 'md')}
+
+        {appRating > 0 && (
+          <FeedbackReasonInput
+            label="Alasan penilaian aplikasi:"
+            value={appReason}
+            onChange={setAppReason}
+            placeholder="Ketik saran aplikasi atau pilih pilihan cepat..."
+            suggestions={APP_ALL_SUGGESTIONS}
+            chips={appRating >= 4 ? APP_POSITIVE_SUGGESTIONS.slice(0, 5) : APP_CONSTRUCTIVE_SUGGESTIONS.slice(0, 5)}
+          />
+        )}
+      </div>
+
+      {/* 4. GENERAL COMMENT / NOTES (OPTIONAL) */}
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-bold text-stone-600">
+          Catatan Tambahan untuk Kami (Opsional)
+        </label>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          maxLength={500}
+          rows={2}
+          placeholder="Tuliskan pesan, kritik, atau saran lainnya..."
+          className="w-full px-3 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white text-stone-800 placeholder:text-stone-400 transition-colors"
+        />
+      </div>
+
+      {/* Submit Button */}
+      <div className="space-y-2 pt-1">
+        <button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={saving || (restoRating === 0 && appRating === 0 && Object.values(itemFeedbacks).every((it) => it.rating === 0))}
+          className="w-full py-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md"
+        >
+          {saving ? (
+            <>
+              <i className="fa-solid fa-circle-notch fa-spin text-sm" aria-hidden="true" />
+              <span>Menyimpan Feedback...</span>
+            </>
+          ) : (
+            <>
+              <i className="fa-solid fa-paper-plane text-xs" aria-hidden="true" />
+              <span>{existingFeedback ? 'Perbarui Feedback' : 'Kirim Penilaian & Ulasan'}</span>
+            </>
+          )}
+        </button>
+
+        {existingFeedback && (
+          <button
+            type="button"
+            onClick={() => {
+              setIsEditing(false)
+              setError(null)
+            }}
+            disabled={saving}
+            className="w-full py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold transition-colors"
+          >
+            Batal Ubah
+          </button>
+        )}
+      </div>
     </section>
   )
 }

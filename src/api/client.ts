@@ -6,6 +6,8 @@ import type {
   GeocodeResult,
   MenuItem,
   Order,
+  OrderFeedback,
+  OrderItemFeedback,
   Payment,
   PaymentStatus,
 } from '../types'
@@ -248,9 +250,27 @@ export const customerApi = {
     return res.data.data
   },
 
-  submitFeedback: async (id: string, rating: number, comment: string) => {
-    const res = await api.put(`/orders/${id}/feedback`, { rating, comment })
-    return res.data.data as NonNullable<Order['feedback']>
+  submitFeedback: async (
+    id: string,
+    payload:
+      | {
+          rating?: number
+          resto_rating?: number
+          app_rating?: number
+          resto_reason?: string
+          app_reason?: string
+          comment?: string
+          items_feedback?: OrderItemFeedback[]
+        }
+      | number,
+    legacyComment?: string
+  ): Promise<OrderFeedback> => {
+    const body =
+      typeof payload === 'number'
+        ? { rating: payload, resto_rating: payload, comment: legacyComment ?? '' }
+        : payload
+    const res = await api.put(`/orders/${id}/feedback`, body)
+    return res.data.data as OrderFeedback
   },
 
   // ---- Payments ---------------------------------------------------------

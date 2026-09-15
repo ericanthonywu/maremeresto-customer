@@ -75,27 +75,45 @@ export interface Order {
   promo_code?: string
   scheduled_at?: string
   rejection_reason?: string
-  feedback?: {
-    rating: number
-    comment?: string
-    created_at: string
-    updated_at: string
-  }
+  feedback?: OrderFeedback
   version: number
   items?: OrderItem[]
   payment?: Payment
   created_at: string
 }
 
+export interface OrderItemFeedback {
+  order_item_id: string
+  menu_item_id?: string
+  item_name: string
+  rating: number
+  reason?: string
+}
+
+export interface OrderFeedback {
+  rating: number
+  resto_rating?: number
+  app_rating?: number
+  resto_reason?: string
+  app_reason?: string
+  comment?: string
+  items_feedback?: OrderItemFeedback[]
+  created_at: string
+  updated_at: string
+}
+
 export interface OrderItem {
   id: string
   order_id: string
+  menu_item_id?: string
   item_name: string
   item_price: number
   item_icon: string
   quantity: number
   notes?: string
   line_total: number
+  rating?: number
+  review_reason?: string
 }
 
 export interface Payment {
