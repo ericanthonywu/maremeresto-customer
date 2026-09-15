@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { customerApi, errorMessage, formatRupiah } from '../api/client'
 import type { Order, PaymentStatus } from '../types'
+import { OrderSuccessSkeleton } from '../components/Skeleton'
 
 /** How long to keep polling for settlement before offering a manual refresh. */
 const POLL_INTERVAL_MS = 4000
@@ -18,8 +19,9 @@ export const OrderSuccessPage: React.FC = () => {
   const [pollingExpired, setPollingExpired] = useState(false)
   const [retrying, setRetrying] = useState(false)
 
-  const startedAt = useRef(Date.now())
+  const [startedAt] = useState(() => Date.now())
   const openedWaRef = useRef<string | null>(null)
+
 
   const load = useCallback(async () => {
     if (!orderId) return
@@ -63,7 +65,7 @@ export const OrderSuccessPage: React.FC = () => {
     if (!isAwaitingPayment || pollingExpired) return
 
     const timer = window.setInterval(() => {
-      if (Date.now() - startedAt.current > POLL_TIMEOUT_MS) {
+      if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
         setPollingExpired(true)
         return
       }
@@ -71,7 +73,7 @@ export const OrderSuccessPage: React.FC = () => {
     }, POLL_INTERVAL_MS)
 
     return () => window.clearInterval(timer)
-  }, [isAwaitingPayment, pollingExpired, load])
+  }, [isAwaitingPayment, pollingExpired, load, startedAt])
 
   const copyOrderNumber = async () => {
     if (!order?.order_number) return
@@ -109,10 +111,7 @@ export const OrderSuccessPage: React.FC = () => {
     <div className="min-h-screen bg-brand-50/40 pb-24 pt-8 px-4 sm:px-6 transition-colors duration-300">
       <div className="max-w-xl mx-auto space-y-6 text-center">
         {loading ? (
-          <div className="py-20">
-            <i className="fa-solid fa-circle-notch fa-spin text-2xl text-brand-600" aria-hidden="true"></i>
-            <span className="sr-only">Memuat pesanan</span>
-          </div>
+          <OrderSuccessSkeleton />
         ) : error && !order ? (
           <div className="bg-white rounded-3xl p-10 border border-stone-200 shadow-sm space-y-3">
             <i className="fa-solid fa-circle-exclamation text-4xl text-amber-500" aria-hidden="true"></i>

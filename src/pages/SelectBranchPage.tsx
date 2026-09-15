@@ -3,6 +3,7 @@ import { useBranch } from '../context/BranchContext'
 import { useLocation } from '../context/LocationContext'
 import { BranchCard } from '../components/BranchCard'
 import { LocationModal } from '../components/LocationModal'
+import { BranchSkeletonGrid } from '../components/Skeleton'
 import { SEO } from '../components/SEO'
 
 export const SelectBranchPage: React.FC = () => {
@@ -108,10 +109,7 @@ export const SelectBranchPage: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <i className="fa-solid fa-circle-notch fa-spin text-3xl text-brand-600" aria-hidden="true"></i>
-            <span className="sr-only">Memuat outlet</span>
-          </div>
+          <BranchSkeletonGrid />
         ) : error ? (
           <div className="bg-white rounded-3xl p-10 text-center border border-stone-200 shadow-sm space-y-3">
             <i className="fa-solid fa-triangle-exclamation text-3xl text-amber-500" aria-hidden="true"></i>

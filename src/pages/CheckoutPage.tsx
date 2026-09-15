@@ -44,7 +44,7 @@ export const CheckoutPage: React.FC = () => {
   const { location } = useLocation()
   const navigate = useNavigate()
 
-  const profile = useMemo(storedProfile, [])
+  const profile = useMemo(() => storedProfile(), [])
 
   const [orderType, setOrderType] = useState<OrderType>('delivery')
   const [name, setName] = useState(profile.name)
@@ -99,7 +99,7 @@ export const CheckoutPage: React.FC = () => {
     if (orderType === 'scheduled' && !scheduledTime) return 'Pilih jam pengiriman pesanan.'
     if (isDelivery && !addressDetail.trim()) return 'Detail alamat & patokan rumah wajib diisi.'
     return null
-  }, [items.length, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime, addressDetail])
+  }, [items, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime, addressDetail])
 
   /** Fields the customer can complete directly before tapping the payment CTA. */
   const incompleteFields = useMemo(() => {
@@ -210,6 +210,7 @@ export const CheckoutPage: React.FC = () => {
         window.location.assign(payment.snap_redirect_url)
       } catch (err) {
         setErrorMsg(errorMessage(err, 'Gagal membuat pesanan. Periksa koneksi dan coba lagi.'))
+      } finally {
         submitInFlightRef.current = false
         setIsSubmitting(false)
         setSubmitStage('')

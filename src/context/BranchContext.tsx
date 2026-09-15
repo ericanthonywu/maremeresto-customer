@@ -107,12 +107,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Re-price whenever the delivery point moves.
   useEffect(() => {
-    if (!location) {
-      setQuotes({})
-      setNearestBranchId(null)
-      setQuotesError(null)
-      return
-    }
+    if (!location) return
     void refreshQuotes(lastSubtotalRef.current)
   }, [location, refreshQuotes])
 

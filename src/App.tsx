@@ -10,12 +10,14 @@ import { AppHeader } from './components/AppHeader'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { CustomerAuthModal } from './components/CustomerAuthModal'
 
-import { SelectBranchPage } from './pages/SelectBranchPage'
-import { MenuPage } from './pages/MenuPage'
-import { CartPage } from './pages/CartPage'
-import { CheckoutPage } from './pages/CheckoutPage'
-import { OrderSuccessPage } from './pages/OrderSuccessPage'
-import { TrackingPage } from './pages/TrackingPage'
+import { lazy, Suspense } from 'react'
+
+const SelectBranchPage = lazy(() => import('./pages/SelectBranchPage').then((m) => ({ default: m.SelectBranchPage })))
+const MenuPage = lazy(() => import('./pages/MenuPage').then((m) => ({ default: m.MenuPage })))
+const CartPage = lazy(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })))
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })))
+const OrderSuccessPage = lazy(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })))
+const TrackingPage = lazy(() => import('./pages/TrackingPage').then((m) => ({ default: m.TrackingPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,17 +44,26 @@ export const App: React.FC = () => {
                     <AppHeader />
 
                     <main className="flex-1">
-                      <Routes>
-                        <Route path="/" element={<Navigate to="/branches" replace />} />
-                        <Route path="/branches" element={<SelectBranchPage />} />
-                        <Route path="/menu" element={<MenuPage />} />
-                        <Route path="/cart" element={<CartPage />} />
-                        <Route path="/checkout" element={<CheckoutPage />} />
-                        <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
-                        <Route path="/tracking" element={<TrackingPage />} />
-                        <Route path="/tracking/:orderId" element={<TrackingPage />} />
-                        <Route path="*" element={<Navigate to="/branches" replace />} />
-                      </Routes>
+                      <Suspense
+                        fallback={
+                          <div className="py-20 flex justify-center items-center min-h-[50vh]">
+                            <i className="fa-solid fa-circle-notch fa-spin text-3xl text-brand-600" aria-hidden="true"></i>
+                            <span className="sr-only">Memuat...</span>
+                          </div>
+                        }
+                      >
+                        <Routes>
+                          <Route path="/" element={<Navigate to="/branches" replace />} />
+                          <Route path="/branches" element={<SelectBranchPage />} />
+                          <Route path="/menu" element={<MenuPage />} />
+                          <Route path="/cart" element={<CartPage />} />
+                          <Route path="/checkout" element={<CheckoutPage />} />
+                          <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+                          <Route path="/tracking" element={<TrackingPage />} />
+                          <Route path="/tracking/:orderId" element={<TrackingPage />} />
+                          <Route path="*" element={<Navigate to="/branches" replace />} />
+                        </Routes>
+                      </Suspense>
                     </main>
 
                     <MobileBottomNav />

@@ -6,6 +6,7 @@ import type { Order } from '../types'
 import { RouteProgressBanner } from '../components/RouteProgressBanner'
 import { OrderTimeline } from '../components/OrderTimeline'
 import { OrderFeedbackCard } from '../components/OrderFeedbackCard'
+import { OrderTrackingSkeleton } from '../components/Skeleton'
 
 const CANCEL_WINDOW_MS = 5 * 60 * 1000
 
@@ -56,11 +57,19 @@ export const TrackingPage: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
-    if (orderId) {
-      void loadOrder(orderId)
-    } else {
-      void loadRecent()
+    let active = true
+    const fetchData = async () => {
+      if (orderId) {
+        await loadOrder(orderId)
+      } else {
+        await loadRecent()
+      }
+    }
+    if (active) {
+      void fetchData()
+    }
+    return () => {
+      active = false
     }
   }, [orderId, loadOrder, loadRecent])
 
@@ -110,8 +119,16 @@ export const TrackingPage: React.FC = () => {
     }
   }
 
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (order?.status !== 'pending') return
+    const interval = window.setInterval(() => setNow(Date.now()), 5000)
+    return () => window.clearInterval(interval)
+  }, [order?.status])
+
   const canSelfCancel =
-    order?.status === 'pending' && Date.now() - new Date(order.created_at).getTime() < CANCEL_WINDOW_MS
+    order?.status === 'pending' && now - new Date(order.created_at).getTime() < CANCEL_WINDOW_MS
 
   const isBeingDelivered = order?.order_type !== 'pickup' && order?.status === 'completed'
 
@@ -153,10 +170,7 @@ export const TrackingPage: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="py-20 flex justify-center">
-            <i className="fa-solid fa-circle-notch fa-spin text-3xl text-brand-600" aria-hidden="true"></i>
-            <span className="sr-only">Memuat</span>
-          </div>
+          <OrderTrackingSkeleton />
         ) : order ? (
           <div className="space-y-6">
             <RouteProgressBanner
