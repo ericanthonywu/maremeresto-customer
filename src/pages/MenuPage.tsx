@@ -9,6 +9,7 @@ import { MenuItemCard } from '../components/MenuItemCard'
 import { StickyCartSidebar } from '../components/StickyCartSidebar'
 import { FloatingCartBar } from '../components/FloatingCartBar'
 import { HalalCertificateBadge } from '../components/HalalCertificateBadge'
+import { SEO } from '../components/SEO'
 
 export const MenuPage: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -33,8 +34,6 @@ export const MenuPage: React.FC = () => {
   const activeSlug = selectedBranch?.slug ?? null
 
   useEffect(() => {
-    // Wait for a real outlet rather than guessing a slug. The previous default
-    // ('sudirman') no longer exists, so the menu silently failed to load.
     if (!activeSlug) {
       if (!branchesLoading) setLoading(false)
       return
@@ -86,8 +85,22 @@ export const MenuPage: React.FC = () => {
 
   const isBusy = loading || branchesLoading
 
+  const pageTitle = selectedBranch
+    ? `Menu Makanan Hangat & Murah — ${selectedBranch.name} Solo | Mareme Group`
+    : 'Menu Kuliner Makanan Hangat & Murah Surakarta Solo'
+
+  const pageDescription = selectedBranch
+    ? `Pesan online menu makanan hangat murah di ${selectedBranch.name} Surakarta / Solo. Nikmati soto, bakmi, warmindo, & kopi hangat terjangkau.`
+    : 'Pilih dan pesan menu kuliner makanan hangat dan murah di Surakarta / Solo dari Mareme Group. Soto hangat, bakmi, warmindo & kopi terjangkau.'
+
   return (
     <div className="min-h-screen bg-brand-50/40 pb-28 lg:pb-16 transition-colors duration-300">
+      <SEO
+        title={pageTitle}
+        description={pageDescription}
+        keywords="menu makanan murah solo, menu makanan hangat surakarta, soto hangat solo, bakmi murah solo, warmindo solo, kopi hangat solo, mareme group menu"
+      />
+
       {toastMessage && (
         <div className="fixed top-16 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
           <div
@@ -106,7 +119,7 @@ export const MenuPage: React.FC = () => {
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold uppercase tracking-wider text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200">
-                Menu outlet
+                Menu Makanan Hangat Murah Solo
               </span>
               {selectedBranch && (
                 <span
@@ -129,7 +142,9 @@ export const MenuPage: React.FC = () => {
             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 truncate">
               {selectedBranch?.name ?? (branchesLoading ? 'Memuat cabang...' : 'Pilih Cabang')}
             </h1>
-            <p className="text-xs text-stone-500 max-w-xl">{selectedBranch?.address ?? ''}</p>
+            <p className="text-xs text-stone-500 max-w-xl">
+              {selectedBranch?.address ? `${selectedBranch.address} — Kuliner hangat & terjangkau di Surakarta` : ''}
+            </p>
             {selectedBranch && <HalalCertificateBadge certificateId={selectedBranch.halal_certificate_id} />}
           </div>
 
@@ -155,7 +170,7 @@ export const MenuPage: React.FC = () => {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Ketuk di sini untuk cari menu... 🔍"
+                placeholder="Cari menu soto, bakmi, kopi..."
                 className="pl-9 pr-4 py-2 bg-stone-50 border border-stone-300 rounded-2xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-brand-500 focus:bg-white w-full sm:w-56 transition-all"
               />
             </div>
