@@ -23,14 +23,13 @@ export const SelectBranchPage: React.FC = () => {
         <div className="max-w-3xl mx-auto space-y-4 relative z-10">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-amber-200 border border-white/15 text-xs font-semibold">
             <i className="fa-solid fa-mug-hot" aria-hidden="true"></i>
-            <span>Pesan online & pengantaran</span>
+            <span>Pesan Online & Diantar Sampai Rumah 🛵</span>
           </span>
 
-          <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight">Pilih Outlet</h1>
+          <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight">Pilih Cabang Terdekat 🏪</h1>
 
           <p className="text-stone-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            Tentukan lokasi Anda dan kami tampilkan jarak, estimasi waktu, serta ongkos kirim
-            sebenarnya dari setiap outlet.
+            Yuk atur lokasi tempat tinggal Bapak/Ibu agar kami bisa menunjukkan cabang terdekat, ongkir hemat, dan estimasi waktu antar ☕✨
           </p>
 
           <div className="pt-2">
@@ -44,17 +43,17 @@ export const SelectBranchPage: React.FC = () => {
               ></i>
               <span className="truncate max-w-[16rem] sm:max-w-md">
                 {detecting
-                  ? 'Mendeteksi lokasi Anda...'
+                  ? 'Mencari lokasi Anda... ⏳'
                   : location
                     ? location.address
-                    : 'Tentukan lokasi Anda'}
+                    : 'Klik di sini untuk pilih alamat pengiriman 📍'}
               </span>
               <i className="fa-solid fa-chevron-down text-[10px] text-stone-400 shrink-0" aria-hidden="true"></i>
             </button>
 
             {!location && !detecting && (
               <p className="text-[11px] text-amber-200/80 mt-2">
-                Ongkos kirim belum bisa ditampilkan sampai lokasi ditentukan.
+                Biaya pengiriman akan muncul setelah Anda memilih atau memasukkan alamat.
               </p>
             )}
           </div>

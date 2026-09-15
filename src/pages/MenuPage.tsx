@@ -127,7 +127,7 @@ export const MenuPage: React.FC = () => {
             </div>
 
             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 truncate">
-              {selectedBranch?.name ?? (branchesLoading ? 'Memuat outlet...' : 'Pilih outlet')}
+              {selectedBranch?.name ?? (branchesLoading ? 'Memuat cabang...' : 'Pilih Cabang')}
             </h1>
             <p className="text-xs text-stone-500 max-w-xl">{selectedBranch?.address ?? ''}</p>
             {selectedBranch && <HalalCertificateBadge certificateId={selectedBranch.halal_certificate_id} />}
@@ -139,12 +139,12 @@ export const MenuPage: React.FC = () => {
               className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-2xl text-xs transition-colors flex items-center gap-2 border border-stone-200 shadow-sm whitespace-nowrap"
             >
               <i className="fa-solid fa-store text-brand-600" aria-hidden="true"></i>
-              <span>Ganti outlet</span>
+              <span>Ganti Cabang</span>
             </Link>
 
             <div className="relative flex-1 sm:flex-none">
               <label htmlFor="menu-search" className="sr-only">
-                Cari menu
+                Cari makanan atau minuman
               </label>
               <i
                 className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs"
@@ -155,7 +155,7 @@ export const MenuPage: React.FC = () => {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari menu..."
+                placeholder="Ketuk di sini untuk cari menu... 🔍"
                 className="pl-9 pr-4 py-2 bg-stone-50 border border-stone-300 rounded-2xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-brand-500 focus:bg-white w-full sm:w-56 transition-all"
               />
             </div>
@@ -166,8 +166,7 @@ export const MenuPage: React.FC = () => {
           <div className="max-w-7xl mx-auto mt-3 p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 flex items-start gap-2">
             <i className="fa-solid fa-circle-info mt-0.5 shrink-0" aria-hidden="true"></i>
             <span>
-              Outlet ini sedang tutup, jadi pesanan belum dapat diproses. Anda tetap dapat melihat menu,
-              atau <Link to="/branches" className="underline font-bold">pilih outlet lain</Link>.
+              Cabang ini sedang istirahat / tutup 😴. Bapak/Ibu tetap bisa melihat-lihat menu, atau <Link to="/branches" className="underline font-bold">pilih cabang lain yang buka ➔</Link>
             </span>
           </div>
         )}

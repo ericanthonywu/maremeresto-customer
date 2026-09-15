@@ -81,17 +81,17 @@ export const CustomerAuthModal: React.FC = () => {
                 <i className="fa-solid fa-mug-hot"></i>
               </div>
               <h2 id="auth-modal-title" className="font-serif font-bold text-xl text-stone-900">
-                Selamat Datang di Mareme Group
+                Halo & Selamat Datang! 👋
               </h2>
               <p className="text-xs text-stone-500 leading-relaxed max-w-xs mx-auto">
-                Silakan masukkan WhatsApp Anda untuk mulai memesan makanan dan minuman favorit.
+                Yuk masukkan nomor WhatsApp Bapak/Ibu untuk mulai memesan santapan lezat favorit keluarga 😊
               </p>
             </div>
 
             <form onSubmit={handleProceedToConfirm} className="space-y-4">
               <div className="space-y-1.5 text-left">
                 <label htmlFor="auth-phone" className="block text-xs font-bold text-stone-800">
-                  WhatsApp <span className="text-red-500">*</span>
+                  Nomor WhatsApp 👋 <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500 text-xs font-bold">
@@ -112,14 +112,14 @@ export const CustomerAuthModal: React.FC = () => {
                     className="w-full pl-16 pr-3.5 py-3 text-xs bg-stone-50 border border-stone-300 rounded-2xl focus:outline-none focus:border-brand-500 focus:bg-white font-mono transition-all text-stone-900"
                   />
                 </div>
-                <p className="text-[10px] text-stone-400">
-                  Digunakan untuk konfirmasi pesanan dan komunikasi pengantaran kurir.
+                <p className="text-[10px] text-stone-500">
+                  Tenang, nomor ini hanya dipakai untuk mengabari status pesanan dan agar kurir bisa menghubungi Bapak/Ibu 📲
                 </p>
               </div>
 
               <div className="space-y-1.5 text-left">
                 <label htmlFor="auth-name" className="block text-xs font-bold text-stone-800">
-                  Nama Pemesan <span className="text-red-500">*</span>
+                  Nama Lengkap / Panggilan 😊 <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="auth-name"
@@ -128,7 +128,7 @@ export const CustomerAuthModal: React.FC = () => {
                     minLength={2}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="mis. Budi Santoso"
+                  placeholder="Contoh: Pak Budi / Bu Siti"
                   className="w-full px-3.5 py-3 text-xs bg-stone-50 border border-stone-300 rounded-2xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all text-stone-900"
                 />
               </div>
@@ -144,8 +144,7 @@ export const CustomerAuthModal: React.FC = () => {
                 type="submit"
                 className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2"
               >
-                <span>Lanjutkan</span>
-                <i className="fa-solid fa-arrow-right text-xs"></i>
+                <span>Lanjut Pilih Menu ➔</span>
               </button>
             </form>
           </>
