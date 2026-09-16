@@ -51,7 +51,13 @@ export const OrderSuccessPage: React.FC = () => {
     if (order && order.branch?.whatsapp_number && openedWaRef.current !== order.id) {
       openedWaRef.current = order.id
       const phone = order.branch.whatsapp_number.replace(/\D/g, '')
-      const message = encodeURIComponent(`Halo ${order.branch.name}, saya sudah membuat pesanan ${order.order_number}.`)
+      const origin = typeof window !== 'undefined'
+        ? (window.location.origin || `${window.location.protocol}//${window.location.host}`)
+        : ''
+      const trackingUrl = `${origin}/tracking/${order.id}`
+      const message = encodeURIComponent(
+        `Halo ${order.branch.name}, saya sudah membuat pesanan ${order.order_number}. Saya bisa melacak orderan saya di ${trackingUrl}`
+      )
       const waUrl = `https://wa.me/${phone}?text=${message}`
       window.open(waUrl, '_blank', 'noopener,noreferrer')
     }
@@ -276,7 +282,11 @@ export const OrderSuccessPage: React.FC = () => {
                 {order.branch?.whatsapp_number && (
                   <a
                     href={`https://wa.me/${order.branch.whatsapp_number.replace(/\D/g, '')}?text=${encodeURIComponent(
-                      `Halo ${order.branch.name}, saya sudah membuat pesanan ${order.order_number}.`
+                      `Halo ${order.branch.name}, saya sudah membuat pesanan ${order.order_number}. Saya bisa melacak orderan saya di ${
+                        typeof window !== 'undefined'
+                          ? (window.location.origin || `${window.location.protocol}//${window.location.host}`)
+                          : ''
+                      }/tracking/${order.id}`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
