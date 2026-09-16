@@ -6,7 +6,7 @@ import type { Order } from '../types'
 import { RouteProgressBanner } from '../components/RouteProgressBanner'
 import { OrderTimeline } from '../components/OrderTimeline'
 import { OrderFeedbackCard } from '../components/OrderFeedbackCard'
-import { OrderTrackingSkeleton } from '../components/Skeleton'
+import { OrderTrackingSkeleton, RecentOrdersSkeleton } from '../components/Skeleton'
 
 const CANCEL_WINDOW_MS = 5 * 60 * 1000
 
@@ -23,8 +23,11 @@ export const TrackingPage: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [navigatingOrderId, setNavigatingOrderId] = useState<string | null>(null)
 
   const loadOrder = useCallback(async (id: string) => {
+    setLoading(true)
+    setLoadError(null)
     try {
       const fetched = await customerApi.getOrder(id)
       setOrder(fetched)
@@ -35,11 +38,14 @@ export const TrackingPage: React.FC = () => {
       setLoadError(errorMessage(err, 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.'))
     } finally {
       setLoading(false)
+      setNavigatingOrderId(null)
     }
   }, [])
 
   // With no id in the URL, show the customer's own recent orders to pick from.
   const loadRecent = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
     if (!isLoggedIn()) {
       setRecentOrders([])
       setLoading(false)
@@ -57,19 +63,16 @@ export const TrackingPage: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    let active = true
-    const fetchData = async () => {
-      if (orderId) {
-        await loadOrder(orderId)
-      } else {
-        await loadRecent()
+    setLoading(true)
+    setLoadError(null)
+    if (orderId) {
+      if (order?.id !== orderId) {
+        setOrder(null)
       }
-    }
-    if (active) {
-      void fetchData()
-    }
-    return () => {
-      active = false
+      void loadOrder(orderId)
+    } else {
+      setOrder(null)
+      void loadRecent()
     }
   }, [orderId, loadOrder, loadRecent])
 
@@ -132,6 +135,9 @@ export const TrackingPage: React.FC = () => {
 
   const isBeingDelivered = order?.order_type !== 'pickup' && order?.status === 'completed'
 
+  const isOrderLoading = Boolean(orderId) && (loading || (!order || order.id !== orderId)) && !loadError
+  const isRecentLoading = !orderId && (loading || recentOrders === null) && !loadError
+
   return (
     <div className="min-h-screen bg-brand-50/40 pb-24 lg:pb-16 pt-6 transition-colors duration-300">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -169,8 +175,10 @@ export const TrackingPage: React.FC = () => {
           </div>
         )}
 
-        {loading ? (
+        {isOrderLoading ? (
           <OrderTrackingSkeleton />
+        ) : isRecentLoading ? (
+          <RecentOrdersSkeleton />
         ) : order ? (
           <div className="space-y-6">
             <RouteProgressBanner
@@ -323,7 +331,7 @@ export const TrackingPage: React.FC = () => {
 
             </div>
           </div>
-        ) : orderId ? (
+        ) : orderId && loadError ? (
           /* A specific order was requested but could not be loaded. */
           <div className="bg-white rounded-3xl p-10 text-center border border-stone-200 shadow-sm space-y-3">
             <i className="fa-solid fa-circle-question text-4xl text-stone-300" aria-hidden="true"></i>
@@ -352,7 +360,10 @@ export const TrackingPage: React.FC = () => {
               <Link
                 key={o.id}
                 to={`/tracking/${o.id}`}
-                className="block bg-white rounded-2xl p-4 border border-stone-200 shadow-sm hover:border-brand-300 hover:shadow-md transition-all"
+                onClick={() => setNavigatingOrderId(o.id)}
+                className={`block bg-white rounded-2xl p-4 border border-stone-200 shadow-sm hover:border-brand-300 hover:shadow-md transition-all ${
+                  navigatingOrderId === o.id ? 'ring-2 ring-brand-500/40 opacity-90' : ''
+                }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -373,6 +384,24 @@ export const TrackingPage: React.FC = () => {
                     </span>
                     <span className="text-[10px] font-bold uppercase text-stone-400">{o.status}</span>
                   </div>
+                </div>
+
+                {/* Bottom row with action / skeleton button */}
+                <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between">
+                  <span className="text-[11px] text-stone-400 font-medium">
+                    {o.order_type === 'pickup' ? 'Ambil di outlet' : 'Pengantaran kurir'}
+                  </span>
+                  {navigatingOrderId === o.id ? (
+                    <div className="px-3 py-1 bg-brand-100 text-brand-800 rounded-xl text-xs font-bold flex items-center gap-1.5 animate-pulse">
+                      <i className="fa-solid fa-circle-notch fa-spin text-[10px]" aria-hidden="true" />
+                      <span>Membuka...</span>
+                    </div>
+                  ) : (
+                    <span className="px-3 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors">
+                      <span>Lacak Pesanan</span>
+                      <i className="fa-solid fa-arrow-right text-[9px]" aria-hidden="true" />
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}
