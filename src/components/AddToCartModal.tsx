@@ -9,22 +9,6 @@ interface AddToCartModalProps {
   onConfirm: (item: MenuItem, notes: string, quantity: number) => void
 }
 
-const COMMON_FOOD_SUGGESTIONS = [
-  'Kuah Dipisah',
-  'Pedas Sedang',
-  'Tidak Pedas',
-  'Banyakin Bawang Goreng',
-  'Tanpa Seledri',
-  'Sambal Dipisah',
-]
-
-const COMMON_DRINK_SUGGESTIONS = [
-  'Es Dipisah',
-  'Kurang Manis (Less Sweet)',
-  'Tanpa Es (Sajian Hangat)',
-  'Manis Normal',
-]
-
 export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   item,
   isOpen,
@@ -62,39 +46,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     item.name.toLowerCase().includes('teh') ||
     item.name.toLowerCase().includes('wedang') ||
     (item.icon && (item.icon.includes('glass') || item.icon.includes('mug')))
-
-  const suggestionChips = isDrink ? COMMON_DRINK_SUGGESTIONS : COMMON_FOOD_SUGGESTIONS
-
-  const handleChipClick = (chip: string) => {
-    const trimmed = notes.trim()
-    if (!trimmed) {
-      setNotes(chip)
-      return
-    }
-
-    // Check if chip already exists in notes (case-insensitive)
-    const regex = new RegExp(`(^|,\\s*)${chip}(,\\s*|$)`, 'i')
-    if (regex.test(trimmed)) {
-      // Remove it
-      const cleaned = trimmed
-        .replace(regex, '$1')
-        .replace(/^,\s*/, '')
-        .replace(/,\s*$/, '')
-        .replace(/,\s*,/g, ', ')
-        .trim()
-      setNotes(cleaned)
-    } else {
-      // Append it
-      const newNotes = `${trimmed}, ${chip}`
-      if (newNotes.length <= 200) {
-        setNotes(newNotes)
-      }
-    }
-  }
-
-  const isChipActive = (chip: string) => {
-    return notes.toLowerCase().includes(chip.toLowerCase())
-  }
 
   const handleIncrease = () => {
     setQuantity((q) => Math.min(99, q + 1))
@@ -235,42 +186,16 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             </span>
           </div>
 
-          {/* Quick Autocomplete Chips */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {suggestionChips.map((chip) => {
-              const active = isChipActive(chip)
-              return (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => handleChipClick(chip)}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
-                    active
-                      ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
-                      : 'bg-stone-50 text-stone-600 border-stone-200 hover:border-brand-300 hover:bg-brand-50/50'
-                  }`}
-                >
-                  {active ? (
-                    <i className="fa-solid fa-check mr-1 text-[9px]" />
-                  ) : (
-                    <i className="fa-solid fa-plus mr-1 text-[9px] text-stone-400" />
-                  )}
-                  {chip}
-                </button>
-              )
-            })}
-          </div>
-
           {/* Notes Input Field */}
           <textarea
             id="item-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value.slice(0, 200))}
-            rows={2}
+            rows={3}
             placeholder={
               isDrink
-                ? 'Contoh: Es dipisah, gulanya sedikit saja ya mas...'
-                : 'Contoh: Kuah dipisah, jangan terlalu pedas, banyakin bawang goreng...'
+                ? 'Tulis catatan untuk minuman (mis. es dipisah, kurang manis, dsb)...'
+                : 'Tulis catatan untuk pesanan (mis. kuah dipisah, tidak pedas, banyakin bawang goreng, dsb)...'
             }
             className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-2xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500/20 resize-none transition-all leading-relaxed"
           />
