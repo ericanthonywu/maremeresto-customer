@@ -6,6 +6,7 @@ import { customerApi, errorMessage } from '../api/client'
 import type { Category, MenuItem } from '../types'
 import { CategoryTabs } from '../components/CategoryTabs'
 import { MenuItemCard } from '../components/MenuItemCard'
+import { AddToCartModal } from '../components/AddToCartModal'
 import { StickyCartSidebar } from '../components/StickyCartSidebar'
 import { FloatingCartBar } from '../components/FloatingCartBar'
 import { HalalCertificateBadge } from '../components/HalalCertificateBadge'
@@ -16,12 +17,13 @@ export const MenuPage: React.FC = () => {
   const [searchParams] = useSearchParams()
   const branchParam = searchParams.get('branch')
   const { selectedBranch, selectBranchBySlug, loading: branchesLoading } = useBranch()
-  const { toastMessage } = useCart()
+  const { addToCart, toastMessage } = useCart()
 
   const [categories, setCategories] = useState<Category[]>([])
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [activeCategory, setActiveCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [confirmItem, setConfirmItem] = useState<MenuItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -242,6 +244,7 @@ export const MenuPage: React.FC = () => {
                     key={item.id}
                     item={item}
                     outletOpen={selectedBranch.is_open_now}
+                    onOpenConfirm={(it) => setConfirmItem(it)}
                   />
                 ))}
               </div>
@@ -253,6 +256,17 @@ export const MenuPage: React.FC = () => {
       </div>
 
       <FloatingCartBar />
+
+      {/* Confirmation modal before adding item to cart */}
+      <AddToCartModal
+        isOpen={Boolean(confirmItem)}
+        item={confirmItem}
+        onClose={() => setConfirmItem(null)}
+        onConfirm={(item, notes, quantity) => {
+          addToCart(item, notes, quantity)
+          setConfirmItem(null)
+        }}
+      />
     </div>
   )
 }

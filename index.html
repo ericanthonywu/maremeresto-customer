@@ -60,6 +60,409 @@
     </script>
   </head>
   <body class="bg-[#fbf9f6] antialiased">
+    <!-- Interactive PWA Initial Boot Screen (Instant FCP, Zero-delay interaction) -->
+    <div id="pwa-loader" class="pwa-loader-root" aria-label="Memuat aplikasi Mareme Group">
+      <style>
+        .pwa-loader-root {
+          position: fixed;
+          inset: 0;
+          z-index: 99999;
+          background: #fbf9f6;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 24px 16px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          color: #292524;
+          text-align: center;
+          transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+          touch-action: manipulation;
+          user-select: none;
+          -webkit-user-select: none;
+        }
+        .pwa-hidden {
+          opacity: 0 !important;
+          transform: scale(0.97) !important;
+          pointer-events: none !important;
+        }
+        .pwa-brand-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #ffedd5;
+          color: #9a3412;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          padding: 4px 12px;
+          border-radius: 9999px;
+          margin-bottom: 12px;
+          border: 1px solid #fed7aa;
+        }
+        .pwa-title {
+          font-size: 20px;
+          font-weight: 800;
+          color: #1c1917;
+          margin: 0 0 4px 0;
+          line-height: 1.25;
+        }
+        .pwa-subtitle {
+          font-size: 12px;
+          color: #78716c;
+          margin: 0 0 20px 0;
+        }
+        .pwa-bowl-wrap {
+          position: relative;
+          display: inline-block;
+          margin-bottom: 18px;
+          cursor: pointer;
+        }
+        .pwa-steam-box {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+        .pwa-steam {
+          width: 4px;
+          height: 20px;
+          background: linear-gradient(to top, rgba(200, 112, 40, 0.6), transparent);
+          border-radius: 9999px;
+          animation: pwaSteamMove 1.4s infinite ease-in-out;
+        }
+        .pwa-steam:nth-child(2) {
+          height: 26px;
+          animation-delay: 0.3s;
+        }
+        .pwa-steam:nth-child(3) {
+          height: 18px;
+          animation-delay: 0.6s;
+        }
+        @keyframes pwaSteamMove {
+          0%, 100% { transform: translateY(0) scaleY(0.8); opacity: 0.3; }
+          50% { transform: translateY(-8px) scaleY(1.2); opacity: 0.8; }
+        }
+        .pwa-bowl {
+          width: 88px;
+          height: 88px;
+          border-radius: 28px;
+          background: linear-gradient(135deg, #ea580c 0%, #c2410c 50%, #7c2d12 100%);
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 40px;
+          box-shadow: 0 12px 24px -6px rgba(194, 65, 12, 0.35);
+          border: 3px solid #ffffff;
+          transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .pwa-bowl:active, .pwa-wobble {
+          animation: pwaWobbleAnim 0.45s ease;
+        }
+        @keyframes pwaWobbleAnim {
+          0% { transform: scale(1) rotate(0deg); }
+          25% { transform: scale(1.08) rotate(-6deg); }
+          50% { transform: scale(1.08) rotate(6deg); }
+          75% { transform: scale(1.04) rotate(-3deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+        .pwa-popup-badge {
+          position: absolute;
+          top: -24px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #451a03;
+          color: #fef3c7;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 4px 10px;
+          border-radius: 9999px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+          border: 1px solid #b45309;
+          white-space: nowrap;
+          pointer-events: none;
+          animation: pwaBadgePop 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          z-index: 10;
+        }
+        @keyframes pwaBadgePop {
+          0% { opacity: 0; transform: translate(-50%, 8px) scale(0.85); }
+          25% { opacity: 1; transform: translate(-50%, -6px) scale(1.08); }
+          75% { opacity: 1; transform: translate(-50%, -10px) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
+        }
+        .pwa-stir-btn {
+          background: #fff7ed;
+          border: 1.5px solid #fed7aa;
+          color: #9a3412;
+          font-size: 13px;
+          font-weight: 700;
+          padding: 10px 18px;
+          border-radius: 16px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 2px 6px rgba(194, 65, 12, 0.08);
+          transition: all 0.15s ease;
+          outline: none;
+        }
+        .pwa-stir-btn:active {
+          transform: scale(0.96);
+          background: #ffedd5;
+        }
+        .pwa-stir-count {
+          font-size: 11px;
+          color: #c2410c;
+          font-weight: 700;
+          margin-top: 8px;
+          min-height: 18px;
+        }
+        .pwa-progress-wrap {
+          width: 100%;
+          max-width: 280px;
+          margin: 18px auto 6px;
+        }
+        .pwa-progress-bar-bg {
+          width: 100%;
+          height: 6px;
+          background: #e7e5e4;
+          border-radius: 9999px;
+          overflow: hidden;
+        }
+        .pwa-progress-bar-fill {
+          height: 100%;
+          width: 15%;
+          background: linear-gradient(90deg, #ea580c, #f59e0b);
+          border-radius: 9999px;
+          transition: width 0.4s ease;
+        }
+        .pwa-status-text {
+          font-size: 11px;
+          color: #78716c;
+          font-weight: 600;
+          margin-top: 6px;
+          min-height: 16px;
+        }
+        .pwa-trivia-card {
+          width: 100%;
+          max-width: 320px;
+          background: #ffffff;
+          border: 1px solid #e7e5e4;
+          border-radius: 18px;
+          padding: 12px 14px;
+          margin-top: 14px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          text-align: left;
+        }
+        .pwa-trivia-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 6px;
+        }
+        .pwa-trivia-badge {
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          color: #9a3412;
+          background: #ffedd5;
+          padding: 2px 6px;
+          border-radius: 6px;
+        }
+        .pwa-trivia-next {
+          background: none;
+          border: none;
+          color: #c2410c;
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 0;
+        }
+        .pwa-trivia-text {
+          font-size: 11px;
+          color: #44403c;
+          line-height: 1.45;
+          margin: 0;
+          min-height: 32px;
+        }
+        .pwa-fallback-btn {
+          display: none;
+          margin-top: 14px;
+          font-size: 11px;
+          color: #78716c;
+          text-decoration: underline;
+          cursor: pointer;
+          background: none;
+          border: none;
+        }
+      </style>
+
+      <div class="pwa-brand-pill">
+        <span>🍲</span>
+        <span>Mareme Group Solo</span>
+      </div>
+
+      <h1 class="pwa-title">Kuliner Hangat & Murah</h1>
+      <p class="pwa-subtitle">Sedang menyiapkan menu lezat untuk Anda...</p>
+
+      <!-- Steaming Bowl Illustration -->
+      <div id="pwa-bowl-wrap" class="pwa-bowl-wrap" title="Tap untuk aduk soto!">
+        <div class="pwa-steam-box">
+          <div class="pwa-steam"></div>
+          <div class="pwa-steam"></div>
+          <div class="pwa-steam"></div>
+        </div>
+        <div id="pwa-bowl" class="pwa-bowl">🍲</div>
+        <div id="pwa-popup-anchor"></div>
+      </div>
+
+      <!-- Interactive Stir Button -->
+      <div>
+        <button id="pwa-stir-btn" class="pwa-stir-btn" type="button">
+          <span>Sambil nunggu, aduk soto dulu!</span>
+          <span>✨</span>
+        </button>
+        <div id="pwa-stir-count" class="pwa-stir-count"></div>
+      </div>
+
+      <!-- Progress Bar with Live Micro-Status -->
+      <div class="pwa-progress-wrap">
+        <div class="pwa-progress-bar-bg">
+          <div id="pwa-progress-fill" class="pwa-progress-bar-fill"></div>
+        </div>
+        <div id="pwa-status-text" class="pwa-status-text">Menyalakan kompor dapur...</div>
+      </div>
+
+      <!-- Interactive Trivia Box -->
+      <div class="pwa-trivia-card">
+        <div class="pwa-trivia-header">
+          <span class="pwa-trivia-badge">💡 Tahukah Kamu?</span>
+          <button id="pwa-trivia-next" class="pwa-trivia-next" type="button">Fakta Lain ➔</button>
+        </div>
+        <p id="pwa-trivia-text" class="pwa-trivia-text">
+          Soto & hidangan Mareme diracik dengan bumbu rempah autentik khas Solo yang selalu disajikan hangat.
+        </p>
+      </div>
+
+      <button id="pwa-fallback-btn" class="pwa-fallback-btn" type="button" onclick="location.reload()">
+        Loading agak lama? Tap di sini untuk muat ulang
+      </button>
+    </div>
+
+    <script>
+      (function() {
+        var stirCount = 0;
+        var seasonings = [
+          '+1 Sendok Sambal Pedas 🌶️',
+          '+1 Taburan Bawang Goreng 🧅',
+          '+1 Perasan Jeruk Nipis 🍋',
+          '+1 Kaldu Gurih Mantap ♨️',
+          '+1 Suwir Ayam Empuk 🍗',
+          '+1 Kerupuk Renyah 🥢',
+          'Aroma Sedap Semerbak! ✨'
+        ];
+        var trivia = [
+          'Soto & hidangan Mareme diracik dengan bumbu rempah autentik khas Solo yang selalu disajikan hangat.',
+          'Tips Solo: Nikmati soto hangat paling pas dengan perasan jeruk nipis dan tempe goreng renyah!',
+          'Di Mareme Group, setiap porsi dimasak segar setiap hari agar kualitas rasa selalu terjaga.',
+          'Pesan online lebih praktis: ongkir dihitung otomatis dari cabang terdekat ke rumah Anda.',
+          'Kini Bapak/Ibu bisa menulis catatan khusus untuk dapur pada setiap menu yang dipesan!'
+        ];
+        var triviaIdx = 0;
+
+        var bowl = document.getElementById('pwa-bowl');
+        var bowlWrap = document.getElementById('pwa-bowl-wrap');
+        var stirBtn = document.getElementById('pwa-stir-btn');
+        var stirCountEl = document.getElementById('pwa-stir-count');
+        var popupAnchor = document.getElementById('pwa-popup-anchor');
+        var progressFill = document.getElementById('pwa-progress-fill');
+        var statusText = document.getElementById('pwa-status-text');
+        var triviaText = document.getElementById('pwa-trivia-text');
+        var triviaNext = document.getElementById('pwa-trivia-next');
+        var fallbackBtn = document.getElementById('pwa-fallback-btn');
+
+        function doStir() {
+          stirCount++;
+          if (navigator.vibrate) {
+            try { navigator.vibrate(25); } catch(e) {}
+          }
+          if (bowl) {
+            bowl.classList.remove('pwa-wobble');
+            void bowl.offsetWidth; // trigger reflow
+            bowl.classList.add('pwa-wobble');
+          }
+          if (stirCountEl) {
+            stirCountEl.textContent = 'Sudah diaduk ' + stirCount + 'x · Bumbu semakin meresap! 😋';
+          }
+          // Popup floating badge
+          if (popupAnchor) {
+            var item = seasonings[Math.floor(Math.random() * seasonings.length)];
+            var badge = document.createElement('div');
+            badge.className = 'pwa-popup-badge';
+            badge.textContent = item;
+            popupAnchor.appendChild(badge);
+            setTimeout(function() {
+              if (badge.parentNode) badge.parentNode.removeChild(badge);
+            }, 1100);
+          }
+        }
+
+        if (stirBtn) stirBtn.addEventListener('click', doStir);
+        if (bowlWrap) bowlWrap.addEventListener('click', doStir);
+
+        function nextTrivia() {
+          triviaIdx = (triviaIdx + 1) % trivia.length;
+          if (triviaText) triviaText.textContent = trivia[triviaIdx];
+        }
+        if (triviaNext) triviaNext.addEventListener('click', nextTrivia);
+        setInterval(nextTrivia, 4500);
+
+        // Progress simulation
+        var progress = 20;
+        var steps = [
+          { at: 35, text: 'Meracik kaldu rempah khas Solo...' },
+          { at: 65, text: 'Menghangatkan mangkuk saji...' },
+          { at: 88, text: 'Menyiapkan etalase menu spesial...' },
+          { at: 96, text: 'Hampir siap dihidangkan...' }
+        ];
+        var stepIdx = 0;
+        var progInterval = setInterval(function() {
+          if (progress < 95) {
+            progress += Math.floor(Math.random() * 8) + 4;
+            if (progress > 95) progress = 95;
+            if (progressFill) progressFill.style.width = progress + '%';
+            if (stepIdx < steps.length && progress >= steps[stepIdx].at) {
+              if (statusText) statusText.textContent = steps[stepIdx].text;
+              stepIdx++;
+            }
+          }
+        }, 300);
+
+        // Safety fallback button after 8s
+        setTimeout(function() {
+          if (fallbackBtn) fallbackBtn.style.display = 'inline-block';
+        }, 8000);
+
+        // Dismiss function called by React
+        window.dismissPWALoader = function() {
+          clearInterval(progInterval);
+          if (progressFill) progressFill.style.width = '100%';
+          if (statusText) statusText.textContent = 'Selamat datang di Mareme Group!';
+          setTimeout(function() {
+            var loader = document.getElementById('pwa-loader');
+            if (loader) {
+              loader.classList.add('pwa-hidden');
+              setTimeout(function() {
+                if (loader.parentNode) loader.parentNode.removeChild(loader);
+              }, 400);
+            }
+          }, 200);
+        };
+      })();
+    </script>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

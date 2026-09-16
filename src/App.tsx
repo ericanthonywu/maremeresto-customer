@@ -10,7 +10,8 @@ import { AppHeader } from './components/AppHeader'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { CustomerAuthModal } from './components/CustomerAuthModal'
 
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { InteractiveLoader } from './components/InteractiveLoader'
 
 const SelectBranchPage = lazy(() => import('./pages/SelectBranchPage').then((m) => ({ default: m.SelectBranchPage })))
 const MenuPage = lazy(() => import('./pages/MenuPage').then((m) => ({ default: m.MenuPage })))
@@ -18,6 +19,12 @@ const CartPage = lazy(() => import('./pages/CartPage').then((m) => ({ default: m
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })))
 const OrderSuccessPage = lazy(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })))
 const TrackingPage = lazy(() => import('./pages/TrackingPage').then((m) => ({ default: m.TrackingPage })))
+
+declare global {
+  interface Window {
+    dismissPWALoader?: () => void
+  }
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +37,13 @@ const queryClient = new QueryClient({
 })
 
 export const App: React.FC = () => {
+  useEffect(() => {
+    // Dismiss the HTML-level PWA loading screen once React has mounted
+    if (typeof window !== 'undefined' && window.dismissPWALoader) {
+      window.dismissPWALoader()
+    }
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* LocationProvider wraps BranchProvider: delivery quotes are derived
@@ -44,14 +58,7 @@ export const App: React.FC = () => {
                     <AppHeader />
 
                     <main className="flex-1">
-                      <Suspense
-                        fallback={
-                          <div className="py-20 flex justify-center items-center min-h-[50vh]">
-                            <i className="fa-solid fa-circle-notch fa-spin text-3xl text-brand-600" aria-hidden="true"></i>
-                            <span className="sr-only">Memuat...</span>
-                          </div>
-                        }
-                      >
+                      <Suspense fallback={<InteractiveLoader />}>
                         <Routes>
                           <Route path="/" element={<Navigate to="/branches" replace />} />
                           <Route path="/branches" element={<SelectBranchPage />} />

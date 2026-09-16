@@ -10,7 +10,7 @@ interface CartContextType {
   items: CartItem[]
   /** The outlet the basket belongs to; prices differ per outlet. */
   cartBranchId: string | null
-  addToCart: (item: MenuItem, notes?: string) => void
+  addToCart: (item: MenuItem, notes?: string, quantity?: number) => void
   removeFromCart: (index: number) => void
   changeQuantity: (index: number, delta: number) => void
   updateNotes: (index: number, notes: string) => void
@@ -90,8 +90,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const addToCart = useCallback(
-    (menuItem: MenuItem, notes?: string) => {
+    (menuItem: MenuItem, notes?: string, quantity = 1) => {
       const trimmedNotes = (notes ?? '').trim()
+      const addQty = Math.max(1, Math.min(quantity, MAX_QTY_PER_ITEM))
 
       setItems((prev) => {
         // A basket may only contain items from one outlet, because each outlet
@@ -107,12 +108,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         )
 
         if (existing > -1) {
-          if (base[existing].quantity >= MAX_QTY_PER_ITEM) {
+          const currentQty = base[existing].quantity
+          if (currentQty >= MAX_QTY_PER_ITEM) {
             showToast(`Maksimal ${MAX_QTY_PER_ITEM} per item`)
             return base
           }
+          const finalQty = Math.min(MAX_QTY_PER_ITEM, currentQty + addQty)
           return base.map((item, idx) =>
-            idx === existing ? { ...item, quantity: item.quantity + 1 } : item
+            idx === existing ? { ...item, quantity: finalQty } : item
           )
         }
 
@@ -125,7 +128,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             price: menuItem.price,
             icon: menuItem.icon,
             icon_bg_class: menuItem.icon_bg_class,
-            quantity: 1,
+            quantity: addQty,
             notes: trimmedNotes,
           },
         ]
@@ -135,7 +138,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // A promo is validated against a specific subtotal, so changing the
       // basket invalidates it.
       clearPromo()
-      showToast(`${menuItem.name} ditambahkan`)
+      showToast(
+        addQty > 1
+          ? `${menuItem.name} (${addQty} porsi) ditambahkan`
+          : `${menuItem.name} ditambahkan`
+      )
     },
     [cartBranchId, clearPromo, showToast]
   )

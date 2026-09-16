@@ -7,15 +7,34 @@ interface MenuItemCardProps {
   item: MenuItem
   /** A closed outlet cannot take orders, so adding to the basket is blocked. */
   outletOpen?: boolean
+  onOpenConfirm?: (item: MenuItem) => void
 }
 
-export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, outletOpen = true }) => {
+export const MenuItemCard: React.FC<MenuItemCardProps> = ({
+  item,
+  outletOpen = true,
+  onOpenConfirm,
+}) => {
   const { addToCart } = useCart()
 
   const canOrder = item.is_available && outletOpen
 
+  const handleAction = () => {
+    if (!canOrder) return
+    if (onOpenConfirm) {
+      onOpenConfirm(item)
+    } else {
+      addToCart(item)
+    }
+  }
+
   return (
-    <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+    <div
+      onClick={canOrder ? handleAction : undefined}
+      className={`bg-white rounded-2xl p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
+        canOrder ? 'cursor-pointer hover:border-brand-300' : 'opacity-80'
+      }`}
+    >
       <div className="flex items-start gap-3.5 mb-3">
         {/* Icon / Image thumbnail */}
         <div
@@ -51,7 +70,11 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, outletOpen = t
         <span className="font-extrabold text-sm text-brand-700">{formatRupiah(item.price)}</span>
         {canOrder ? (
           <button
-            onClick={() => addToCart(item)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleAction()
+            }}
             aria-label={`Tambah ${item.name} ke keranjang`}
             className="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
           >

@@ -53,6 +53,11 @@ export const StickyCartSidebar: React.FC = () => {
                   <div className="min-w-0">
                     <p className="font-bold text-stone-900 truncate">{item.name}</p>
                     <p className="text-stone-400 text-[10px]">{formatRupiah(item.price)}</p>
+                    {item.notes && (
+                      <p className="text-stone-500 text-[10px] italic truncate max-w-[140px]">
+                        "{item.notes}"
+                      </p>
+                    )}
                   </div>
                 </div>
 
