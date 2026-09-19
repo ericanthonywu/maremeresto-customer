@@ -26,6 +26,8 @@ export default {
           800: 'rgb(var(--brand-800) / <alpha-value>)',
           900: 'rgb(var(--brand-900) / <alpha-value>)',
         },
+        'logo-red': 'rgb(var(--logo-red) / <alpha-value>)',
+        'logo-gold': 'rgb(var(--logo-gold) / <alpha-value>)',
       },
     },
   },

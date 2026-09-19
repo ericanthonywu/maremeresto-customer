@@ -57,19 +57,18 @@ export const AppHeader: React.FC = () => {
   }, [routerLocation.pathname, isLoggedIn])
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-sm">
+    <header className="sticky top-0 z-30 bg-white border-b border-stone-200/80 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-            <div
-              className="w-10 h-10 rounded-2xl bg-brand-600 flex items-center justify-center text-amber-200 shadow-md group-hover:bg-brand-700 transition-colors"
-              aria-hidden="true"
-            >
-              <i className="fa-solid fa-mug-hot text-xl"></i>
-            </div>
-            <div>
-              <span className="font-serif font-bold text-lg text-stone-900 leading-none block">Mareme Group</span>
-              <span className="text-[11px] text-brand-600 font-medium tracking-wide">Pesan Makanan Online ☕</span>
+          <Link to="/" className="flex items-center gap-3 group shrink-0">
+            <img
+              src="/logo.png"
+              alt="Mareme Group logo"
+              className="h-11 sm:h-12 w-auto object-contain shrink-0"
+            />
+            <div className="hidden sm:block">
+              <span className="font-bold text-base text-logo-red leading-tight block tracking-wide uppercase">MAREMÈ</span>
+              <span className="text-[11px] text-logo-gold font-semibold tracking-wide">Pesan Makanan Online</span>
             </div>
           </Link>
 

@@ -12,6 +12,11 @@
 :root {
   /* Mareme's default warm coffee palette. Every outlet can override these
      semantic colour tokens without changing any component's Tailwind class. */
+
+  /* Logo accent colours — bridges the bold red/gold logo with the warm palette */
+  --logo-red: 220 38 38;
+  --logo-gold: 218 165 32;
+
   --brand-50: 253 248 240;
   --brand-100: 249 237 220;
   --brand-200: 242 216 180;
