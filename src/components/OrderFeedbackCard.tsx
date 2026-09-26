@@ -8,34 +8,6 @@ interface OrderFeedbackCardProps {
   onSaved: (feedback: OrderFeedback) => void
 }
 
-// Suggestions for restaurant rating reasons
-const RESTO_POSITIVE_SUGGESTIONS = [
-  'Makanan sangat lezat dan pas',
-  'Porsi pas dan mengenyangkan',
-  'Kemasan rapi dan higienis',
-  'Makanan masih hangat sampai tujuan',
-  'Bumbu meresap sempurna',
-  'Pelayanan resto cepat dan ramah',
-  'Kualitas bahan segar',
-  'Sesuai catatan pesanan',
-]
-
-const RESTO_CONSTRUCTIVE_SUGGESTIONS = [
-  'Rasa makanan kurang bumbu',
-  'Porsi terlalu sedikit',
-  'Kemasan bocor atau rusak',
-  'Makanan sudah dingin saat sampai',
-  'Waktu penyiapan terlalu lama',
-  'Pesanan tidak sesuai catatan',
-  'Terlalu berminyak atau asin',
-  'Kurang higienis',
-]
-
-const RESTO_ALL_SUGGESTIONS = [
-  ...RESTO_POSITIVE_SUGGESTIONS,
-  ...RESTO_CONSTRUCTIVE_SUGGESTIONS,
-]
-
 // Suggestions for ordered menu items
 const ITEM_POSITIVE_SUGGESTIONS = [
   'Enak banget, rasa otentik',
@@ -91,14 +63,8 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
   const cardRef = useRef<HTMLElement>(null)
 
   // Initialize rating state
-  const [restoRating, setRestoRating] = useState<number>(
-    existingFeedback?.resto_rating ?? existingFeedback?.rating ?? 0
-  )
-  const [restoReason, setRestoReason] = useState<string>(existingFeedback?.resto_reason ?? '')
-
   const [appRating, setAppRating] = useState<number>(existingFeedback?.app_rating ?? 0)
   const [appReason, setAppReason] = useState<string>(existingFeedback?.app_reason ?? '')
-
   const [comment, setComment] = useState<string>(existingFeedback?.comment ?? '')
 
   // Item ratings state: record of order_item_id -> { rating, reason }
@@ -140,7 +106,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     return true
   }, [existingFeedback?.app_rating, order.customer_phone, order.is_first_order])
 
-  // Step state: 'menu' (Langkah 1: Rating Menu) -> 'app' (Langkah 2: Rating Aplikasi)
+  // Step state: 'menu' (Rating Menu) -> 'app' (Rating Aplikasi)
   const [step, setStep] = useState<'menu' | 'app'>('menu')
 
   const [isEditing, setIsEditing] = useState<boolean>(!existingFeedback)
@@ -173,14 +139,13 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     }))
   }
 
-  // Check if user has selected any rating for menu or resto
+  // Check if user has selected any rating for menu items
   const hasAnyItemRating = Object.values(itemFeedbacks).some((it) => it.rating > 0)
-  const hasMenuOrFoodRating = hasAnyItemRating || restoRating > 0
 
-  // --- LANGKAH 1: SIMPAN RATING MENU & RESTO ---
+  // --- TAHAP 1: SIMPAN RATING MENU ---
   const handleSaveMenuStep = async () => {
-    if (!hasMenuOrFoodRating) {
-      setError('Silakan beri bintang minimal untuk salah satu menu atau resto terlebih dahulu.')
+    if (!hasAnyItemRating) {
+      setError('Silakan beri bintang minimal untuk salah satu menu yang dipesan.')
       return
     }
 
@@ -204,9 +169,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
         .filter(Boolean) as OrderItemFeedback[]
 
       const payload = {
-        rating: (itemsPayload[0]?.rating ?? restoRating) || 5,
-        resto_rating: restoRating || undefined,
-        resto_reason: restoReason.trim(),
+        rating: (itemsPayload[0]?.rating ?? 5),
         items_feedback: itemsPayload,
         // Preserve any existing app rating & comment
         app_rating: appRating || undefined,
@@ -218,11 +181,11 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
       onSaved(result)
 
       if (isEligibleForAppRating) {
-        // Ganti tampilan ke Langkah 2: Rating Aplikasi (secara bertahap)
+        // Ganti tampilan ke Rating Aplikasi (secara bertahap)
         setStep('app')
         cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       } else {
-        // User lama yang sudah pernah order: Cukup rating menu, proses langsung selesai
+        // User yang sudah pernah order: Cukup rating menu, proses langsung selesai
         setIsEditing(false)
         setSuccessMsg('Terima kasih! Penilaian menu Anda telah berhasil disimpan.')
         cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -234,7 +197,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     }
   }
 
-  // --- LANGKAH 2: SIMPAN RATING APLIKASI ---
+  // --- TAHAP 2: SIMPAN RATING APLIKASI ---
   const handleSaveAppStep = async () => {
     if (appRating <= 0) {
       setError('Silakan pilih rating bintang aplikasi (1-5), atau klik "Lewati" jika tidak ingin menilai aplikasi.')
@@ -261,9 +224,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
         .filter(Boolean) as OrderItemFeedback[]
 
       const payload = {
-        rating: restoRating || appRating || (itemsPayload[0]?.rating ?? 5),
-        resto_rating: restoRating || undefined,
-        resto_reason: restoReason.trim(),
+        rating: appRating || (itemsPayload[0]?.rating ?? 5),
         app_rating: appRating,
         app_reason: appReason.trim(),
         comment: comment.trim(),
@@ -296,7 +257,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
   }
 
   // Label helper for star ratings
-  const getRatingLabel = (val: number, type: 'resto' | 'app' | 'item') => {
+  const getRatingLabel = (val: number, type: 'app' | 'item') => {
     if (val === 0) return 'Belum dinilai'
     if (type === 'app') {
       switch (val) {
@@ -312,31 +273,17 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
           return 'Sering Kendala / Lambat 😞'
       }
     }
-    if (type === 'item') {
-      switch (val) {
-        case 5:
-          return 'Sangat Enak! ⭐'
-        case 4:
-          return 'Enak & Puas 👍'
-        case 3:
-          return 'Cukup Enak 🙂'
-        case 2:
-          return 'Biasa Saja 😐'
-        case 1:
-          return 'Kurang Cocok 😞'
-      }
-    }
     switch (val) {
       case 5:
-        return 'Luar Biasa Enak! 🌟'
+        return 'Sangat Enak! ⭐'
       case 4:
-        return 'Puas & Enak 👍'
+        return 'Enak & Puas 👍'
       case 3:
-        return 'Cukup Baik 🙂'
+        return 'Cukup Enak 🙂'
       case 2:
-        return 'Kurang Puas 😐'
+        return 'Biasa Saja 😐'
       case 1:
-        return 'Mengecewakan 😞'
+        return 'Kurang Cocok 😞'
     }
   }
 
@@ -344,7 +291,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
   const renderStarButtons = (
     currentRating: number,
     onSelect: (val: number) => void,
-    type: 'resto' | 'app' | 'item',
+    type: 'app' | 'item',
     size: 'sm' | 'md' = 'md'
   ) => {
     const isSmall = size === 'sm'
@@ -383,7 +330,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     )
   }
 
-  // --- READ-ONLY SUMMARY VIEW (SETELAH SUBMIT LENGKAP) ---
+  // --- READ-ONLY SUMMARY VIEW (SETELAH REVIEW TERSIMPAN) ---
   if (!isEditing && existingFeedback) {
     const ratedItems = existingFeedback.items_feedback ?? []
     return (
@@ -400,7 +347,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
             <div>
               <h3 className="font-serif font-bold text-sm text-stone-900">Ulasan Anda Tersimpan</h3>
               <p className="text-[11px] text-stone-500 mt-0.5">
-                Terima kasih atas penilaian Anda untuk {order.branch?.name ?? 'outlet'}.
+                Terima kasih atas penilaian Anda untuk pesanan ini.
               </p>
             </div>
           </div>
@@ -455,28 +402,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
             </div>
           )}
 
-          {/* Resto */}
-          {existingFeedback.resto_rating ? (
-            <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-1">
-              <div className="flex items-center justify-between text-xs font-bold text-stone-800">
-                <span className="flex items-center gap-1.5">
-                  <i className="fa-solid fa-store text-brand-600 text-[11px]" aria-hidden="true" />
-                  Restoran ({order.branch?.name ?? 'Resto'})
-                </span>
-                <span className="text-amber-600 flex items-center gap-1 font-mono font-extrabold">
-                  <i className="fa-solid fa-star text-xs" aria-hidden="true" />
-                  {existingFeedback.resto_rating} / 5
-                </span>
-              </div>
-              {existingFeedback.resto_reason && (
-                <p className="text-xs text-stone-600 italic pl-5">
-                  &ldquo;{existingFeedback.resto_reason}&rdquo;
-                </p>
-              )}
-            </div>
-          ) : null}
-
-          {/* App (Hanya jika pernah dinilai) */}
+          {/* App (Hanya jika dinilai) */}
           {existingFeedback.app_rating ? (
             <div className="p-3 rounded-2xl bg-indigo-50/60 border border-indigo-200/70 space-y-1">
               <div className="flex items-center justify-between text-xs font-bold text-stone-800">
@@ -520,29 +446,24 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     )
   }
 
-  // --- LANGKAH 1: RATING MENU (Tampil Selalu Setiap Order) ---
+  // --- TAMPILAN 1: RATING MENU (Muncul Pertama & Setiap Order) ---
   if (step === 'menu') {
     return (
       <section
         ref={cardRef}
         className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-5"
       >
-        {/* Header Langkah 1 */}
+        {/* Header */}
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 shrink-0 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
-            <i className="fa-solid fa-utensils" aria-hidden="true" />
+            <i className="fa-solid fa-bowl-food" aria-hidden="true" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                Langkah 1
-              </span>
-            </div>
-            <h3 className="font-serif font-bold text-sm text-stone-900 mt-1">
+            <h3 className="font-serif font-bold text-sm text-stone-900">
               Bagaimana Rasa Menu Pesanan Anda?
             </h3>
             <p className="text-[11px] text-stone-500 mt-0.5">
-              Beri rating bintang untuk menu yang dinikmati, lalu klik tombol Simpan di bawah.
+              Beri rating bintang untuk menu yang dinikmati, lalu klik tombol di bawah untuk menyimpan.
             </p>
           </div>
         </div>
@@ -559,18 +480,8 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
 
         <div className="space-y-4">
           {/* List Menu yang Dipesan */}
-          {order.items && order.items.length > 0 && (
+          {order.items && order.items.length > 0 ? (
             <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200 space-y-4">
-              <div>
-                <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
-                  <i className="fa-solid fa-bowl-food text-amber-600 text-xs" aria-hidden="true" />
-                  Menu yang Dipesan ({order.items.length} menu)
-                </h4>
-                <p className="text-[11px] text-stone-500">
-                  Beri rating & ulasan untuk masing-masing menu yang Anda pesan
-                </p>
-              </div>
-
               <div className="space-y-3 divide-y divide-stone-200/70">
                 {order.items.map((item) => {
                   const currentItem = itemFeedbacks[item.id] || { rating: 0, reason: '' }
@@ -619,35 +530,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
                 })}
               </div>
             </div>
-          )}
-
-          {/* Rating Keseluruhan Restoran */}
-          <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70 space-y-3">
-            <div>
-              <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
-                <i className="fa-solid fa-store text-brand-600 text-xs" aria-hidden="true" />
-                Rating Resto ({order.branch?.name ?? 'Outlet'})
-              </h4>
-              <p className="text-[11px] text-stone-500">Kualitas makanan & pelayanan resto</p>
-            </div>
-
-            {renderStarButtons(restoRating, (val) => setRestoRating(val), 'resto', 'md')}
-
-            {restoRating > 0 && (
-              <FeedbackReasonInput
-                label="Alasan penilaian resto:"
-                value={restoReason}
-                onChange={setRestoReason}
-                placeholder="Ketik alasan atau pilih saran cepat..."
-                suggestions={RESTO_ALL_SUGGESTIONS}
-                chips={
-                  restoRating >= 4
-                    ? RESTO_POSITIVE_SUGGESTIONS.slice(0, 5)
-                    : RESTO_CONSTRUCTIVE_SUGGESTIONS.slice(0, 5)
-                }
-              />
-            )}
-          </div>
+          ) : null}
 
           {/* Catatan Tambahan (Opsional) */}
           <div className="space-y-1.5">
@@ -665,11 +548,11 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
           </div>
 
           {/* Reminder visual bahwa setelah rating harus klik submit */}
-          {hasMenuOrFoodRating && (
+          {hasAnyItemRating && (
             <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 text-xs font-semibold shadow-xs">
               <i className="fa-solid fa-circle-check text-amber-600 text-sm shrink-0" aria-hidden="true" />
               <div className="flex-1">
-                <span className="font-bold block text-stone-900">Rating sudah Anda pilih!</span>
+                <span className="font-bold block text-stone-900">Rating menu sudah Anda pilih!</span>
                 <span className="text-[11px] text-stone-600">
                   Klik tombol <strong>&quot;{isEligibleForAppRating ? 'Kirim & Lanjut ke Rating Aplikasi' : 'Kirim Penilaian Menu'}&quot;</strong> di bawah untuk menyimpan.
                 </span>
@@ -677,12 +560,12 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
             </div>
           )}
 
-          {/* Submit Button Langkah 1 */}
+          {/* Submit Button */}
           <div className="space-y-2 pt-1">
             <button
               type="button"
               onClick={() => void handleSaveMenuStep()}
-              disabled={saving || !hasMenuOrFoodRating}
+              disabled={saving || !hasAnyItemRating}
               className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2.5 shadow-md"
             >
               {saving ? (
@@ -722,27 +605,19 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     )
   }
 
-  // --- LANGKAH 2: RATING APLIKASI (Hanya Muncul untuk User yang Belum Pernah Order) ---
+  // --- TAMPILAN 2: RATING APLIKASI (Hanya Setelah Rating Menu Diisi & Khusus User yang Belum Pernah Order) ---
   return (
     <section
       ref={cardRef}
       className="bg-white rounded-3xl p-5 sm:p-6 border border-indigo-200/90 shadow-sm space-y-5"
     >
-      {/* Header Langkah 2 */}
+      {/* Header */}
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 shrink-0 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg">
           <i className="fa-solid fa-mobile-screen-button" aria-hidden="true" />
         </div>
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-              ✓ Menu Tersimpan
-            </span>
-            <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-              Langkah 2
-            </span>
-          </div>
-          <h3 className="font-serif font-bold text-sm text-stone-900 mt-1">
+          <h3 className="font-serif font-bold text-sm text-stone-900">
             Bagaimana Pengalaman Menggunakan Aplikasi?
           </h3>
           <p className="text-[11px] text-stone-500 mt-0.5">
@@ -819,7 +694,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
           </div>
         )}
 
-        {/* Action Buttons Langkah 2 */}
+        {/* Action Buttons */}
         <div className="space-y-2 pt-1">
           <button
             type="button"
