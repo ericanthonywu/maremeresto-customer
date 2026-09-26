@@ -19,6 +19,7 @@ const CartPage = lazy(() => import('./pages/CartPage').then((m) => ({ default: m
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })))
 const OrderSuccessPage = lazy(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })))
 const TrackingPage = lazy(() => import('./pages/TrackingPage').then((m) => ({ default: m.TrackingPage })))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 declare global {
   interface Window {
@@ -68,7 +69,7 @@ export const App: React.FC = () => {
                           <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
                           <Route path="/tracking" element={<TrackingPage />} />
                           <Route path="/tracking/:orderId" element={<TrackingPage />} />
-                          <Route path="*" element={<Navigate to="/branches" replace />} />
+                          <Route path="*" element={<NotFoundPage />} />
                         </Routes>
                       </Suspense>
                     </main>

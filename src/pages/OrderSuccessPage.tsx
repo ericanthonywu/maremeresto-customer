@@ -119,16 +119,36 @@ export const OrderSuccessPage: React.FC = () => {
         {loading ? (
           <OrderSuccessSkeleton />
         ) : error && !order ? (
-          <div className="bg-white rounded-3xl p-10 border border-stone-200 shadow-sm space-y-3">
-            <i className="fa-solid fa-circle-exclamation text-4xl text-amber-500" aria-hidden="true"></i>
-            <h1 className="font-serif text-xl font-bold text-stone-900">Pesanan tidak ditemukan</h1>
-            <p className="text-xs text-stone-500">{error}</p>
-            <Link
-              to="/menu"
-              className="inline-flex px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl text-xs font-bold"
-            >
-              Kembali ke menu
-            </Link>
+          <div className="bg-white rounded-3xl p-8 sm:p-10 border border-amber-200/80 shadow-sm space-y-4 max-w-lg mx-auto text-center animate-fadeIn">
+            <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-3xl mx-auto border border-amber-200/60 shadow-xs">
+              <i className="fa-solid fa-receipt" aria-hidden="true" />
+            </div>
+            <div className="space-y-1.5">
+              <h1 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
+                Informasi Pesanan Tidak Ditemukan
+              </h1>
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed max-w-sm mx-auto">
+                {error && error !== 'resource not found'
+                  ? error
+                  : 'Pesanan tidak ditemukan di sistem. Tautan mungkin telah kedaluwarsa atau pesanan sudah dibatalkan.'}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+              <Link
+                to="/menu"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white rounded-2xl text-xs font-bold shadow-md transition-all"
+              >
+                <i className="fa-solid fa-utensils text-xs" aria-hidden="true" />
+                <span>Pesan Menu Lezat</span>
+              </Link>
+              <Link
+                to="/tracking"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-bold transition-colors"
+              >
+                <i className="fa-solid fa-clock-rotate-left text-xs" aria-hidden="true" />
+                <span>Riwayat Pesanan</span>
+              </Link>
+            </div>
           </div>
         ) : order ? (
           <>

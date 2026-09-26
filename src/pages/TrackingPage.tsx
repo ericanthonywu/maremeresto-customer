@@ -332,24 +332,57 @@ export const TrackingPage: React.FC = () => {
             </div>
           </div>
         ) : orderId && loadError ? (
-          /* A specific order was requested but could not be loaded. */
-          <div className="bg-white rounded-3xl p-10 text-center border border-stone-200 shadow-sm space-y-3">
-            <i className="fa-solid fa-circle-question text-4xl text-stone-300" aria-hidden="true"></i>
-            <h3 className="font-bold text-stone-800 text-sm">Pesanan tidak dapat ditampilkan</h3>
-            <p className="text-xs text-stone-500 max-w-sm mx-auto">{loadError}</p>
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-              <button
-                onClick={() => void loadOrder(orderId)}
-                className="px-4 py-2 bg-stone-900 hover:bg-black text-white rounded-xl text-xs font-bold"
+          /* A specific order was requested but could not be loaded / not found. */
+          <div className="bg-white rounded-3xl p-8 sm:p-10 text-center border border-amber-200/80 shadow-sm space-y-5 animate-fadeIn max-w-lg mx-auto">
+            <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-3xl mx-auto shadow-xs border border-amber-200/60">
+              <i className="fa-solid fa-receipt" aria-hidden="true" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
+                Pesanan Tidak Ditemukan
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed max-w-md mx-auto">
+                {loadError && loadError !== 'resource not found'
+                  ? loadError
+                  : 'Data pesanan dengan ID ini tidak dapat ditemukan di sistem. Pesanan mungkin telah selesai, dibatalkan, atau tautan yang Anda buka sudah tidak aktif.'}
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/70 text-left text-xs text-stone-600 space-y-1.5">
+              <span className="font-bold text-stone-800 block text-[11px] uppercase tracking-wider">
+                Solusi untuk Anda:
+              </span>
+              <ul className="list-disc pl-4 space-y-1 text-[11px] text-stone-500">
+                <li>Pastikan tautan atau nomor pesanan Anda sudah benar.</li>
+                <li>Jika baru saja checkout, data mungkin membutuhkan beberapa detik untuk tersinkronisasi.</li>
+                <li>Atau pesan menu lezat favorit Anda kembali melalui daftar menu.</li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+              <Link
+                to="/menu"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white rounded-2xl text-xs font-bold shadow-md transition-all"
               >
-                Coba lagi
-              </button>
+                <i className="fa-solid fa-utensils text-xs" aria-hidden="true" />
+                <span>Pesan Menu Baru</span>
+              </Link>
               <Link
                 to="/tracking"
-                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-bold"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-bold transition-colors"
               >
-                Lihat pesanan saya
+                <i className="fa-solid fa-clock-rotate-left text-xs" aria-hidden="true" />
+                <span>Riwayat Pesanan Saya</span>
               </Link>
+              <button
+                type="button"
+                onClick={() => void loadOrder(orderId)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-3 text-stone-400 hover:text-stone-700 text-xs font-semibold transition-colors"
+              >
+                <i className="fa-solid fa-rotate-right text-[11px]" aria-hidden="true" />
+                <span>Muat Ulang</span>
+              </button>
             </div>
           </div>
         ) : recentOrders && recentOrders.length > 0 ? (

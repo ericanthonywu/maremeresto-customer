@@ -75,8 +75,40 @@ api.interceptors.response.use(
  */
 export function errorMessage(err: unknown, fallback = 'Terjadi kesalahan. Silakan coba lagi.'): string {
   if (axios.isAxiosError(err)) {
+    const status = err.response?.status
     const apiError = err.response?.data?.error
-    if (typeof apiError === 'string' && apiError.trim()) return apiError
+
+    // Translate 404 or backend generic not found into friendly Indonesian
+    if (
+      status === 404 ||
+      apiError === 'resource not found' ||
+      apiError === 'record not found' ||
+      apiError === 'not found'
+    ) {
+      return fallback !== 'Terjadi kesalahan. Silakan coba lagi.'
+        ? fallback
+        : 'Data pesanan tidak ditemukan atau tautan sudah tidak berlaku.'
+    }
+
+    if (typeof apiError === 'string' && apiError.trim()) {
+      const lower = apiError.toLowerCase()
+      if (lower.includes('resource not found') || lower.includes('record not found')) {
+        return fallback !== 'Terjadi kesalahan. Silakan coba lagi.'
+          ? fallback
+          : 'Data tidak ditemukan atau sudah tidak tersedia.'
+      }
+      if (lower.includes('unauthorized') || lower.includes('jwt') || lower.includes('token')) {
+        return 'Sesi Anda telah kedaluwarsa. Silakan masuk kembali.'
+      }
+      if (lower.includes('forbidden')) {
+        return 'Anda tidak memiliki akses ke data ini.'
+      }
+      if (lower.includes('internal server error') || lower.includes('database error')) {
+        return 'Layanan kami sedang sibuk. Silakan coba beberapa saat lagi.'
+      }
+      return apiError
+    }
+
     if (err.code === 'ECONNABORTED') return 'Koneksi timeout. Periksa jaringan Anda dan coba lagi.'
     if (!err.response) return 'Tidak dapat menghubungi server. Periksa koneksi internet Anda.'
   }

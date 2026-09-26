@@ -203,16 +203,28 @@ export const MenuPage: React.FC = () => {
             {isBusy ? (
               <MenuSkeletonGrid />
             ) : error ? (
-              <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 shadow-sm space-y-3">
-                <i className="fa-solid fa-triangle-exclamation text-4xl text-amber-500" aria-hidden="true"></i>
-                <h3 className="font-bold text-stone-800 text-sm">Gagal memuat menu</h3>
-                <p className="text-xs text-stone-500">{error}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl text-xs font-bold shadow-md"
-                >
-                  Coba lagi
-                </button>
+              <div className="bg-white rounded-3xl p-8 sm:p-12 text-center border border-amber-200/80 shadow-sm space-y-4 max-w-lg mx-auto animate-fadeIn">
+                <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-3xl mx-auto border border-amber-200 shadow-xs">
+                  <i className="fa-solid fa-store" aria-hidden="true" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-stone-900 text-base">Menu Tidak Tersedia</h3>
+                  <p className="text-xs text-stone-500 max-w-sm mx-auto">{error}</p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white rounded-2xl text-xs font-bold shadow-md transition-all"
+                  >
+                    Muat Ulang
+                  </button>
+                  <Link
+                    to="/branches"
+                    className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-bold transition-colors"
+                  >
+                    Pilih Outlet Lain
+                  </Link>
+                </div>
               </div>
             ) : !selectedBranch ? (
               <div className="bg-white rounded-3xl p-12 text-center border border-stone-200 shadow-sm space-y-3">
