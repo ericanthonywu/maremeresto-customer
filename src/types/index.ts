@@ -76,6 +76,7 @@ export interface Order {
   scheduled_at?: string
   rejection_reason?: string
   feedback?: OrderFeedback
+  is_first_order?: boolean
   version: number
   items?: OrderItem[]
   payment?: Payment
