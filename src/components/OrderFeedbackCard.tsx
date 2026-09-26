@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { customerApi, errorMessage, isLoggedIn } from '../api/client'
+import React, { useMemo, useRef, useState } from 'react'
+import { customerApi, errorMessage } from '../api/client'
 import type { Order, OrderFeedback, OrderItemFeedback } from '../types'
 import { FeedbackReasonInput } from './FeedbackReasonInput'
 
@@ -90,7 +90,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
   const existingFeedback = order.feedback
   const cardRef = useRef<HTMLElement>(null)
 
-  // Initialize state from existing feedback or defaults
+  // Initialize rating state
   const [restoRating, setRestoRating] = useState<number>(
     existingFeedback?.resto_rating ?? existingFeedback?.rating ?? 0
   )
@@ -120,57 +120,28 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     return map
   })
 
-  // Determine if this user is a first-time orderer (eligible for app rating step)
-  const [isFirstOrderCustomer, setIsFirstOrderCustomer] = useState<boolean>(() => {
-    if (typeof order.is_first_order === 'boolean') {
-      return order.is_first_order
-    }
-    // If order already has an app rating, allow viewing/editing app rating
-    if (existingFeedback?.app_rating) {
-      return true
-    }
-    // Check local storage marker for previous app ratings
+  // Eligibility for app rating:
+  // Rating aplikasi HANYA muncul untuk user yang belum pernah order / belum pernah rating aplikasi.
+  // Rating menu muncul selalu setiap order.
+  const isEligibleForAppRating = useMemo(() => {
+    // If order already has an app rating, allow viewing/editing it
+    if (existingFeedback?.app_rating) return true
+
+    // If local storage marks this customer as having already rated the app on a previous order, skip app rating
     if (order.customer_phone && localStorage.getItem(`mareme_app_rated_${order.customer_phone}`)) {
       return false
     }
+
+    // If backend explicitly flags that this is not first order and customer already ordered before
+    if (order.is_first_order === false) {
+      return false
+    }
+
     return true
-  })
+  }, [existingFeedback?.app_rating, order.customer_phone, order.is_first_order])
 
-  // Check order history if is_first_order wasn't present in order payload
-  useEffect(() => {
-    if (typeof order.is_first_order === 'boolean') {
-      setIsFirstOrderCustomer(order.is_first_order)
-      return
-    }
-
-    if (existingFeedback?.app_rating) {
-      setIsFirstOrderCustomer(true)
-      return
-    }
-
-    if (order.customer_phone && localStorage.getItem(`mareme_app_rated_${order.customer_phone}`)) {
-      setIsFirstOrderCustomer(false)
-      return
-    }
-
-    if (isLoggedIn()) {
-      customerApi
-        .getMyOrders(5)
-        .then(({ total, orders }) => {
-          const otherOrders = orders.filter((o) => o.id !== order.id)
-          if (total > 1 || otherOrders.length > 0) {
-            setIsFirstOrderCustomer(false)
-          }
-        })
-        .catch(() => {
-          // Ignore background fetch error, keep default
-        })
-    }
-  }, [order.id, order.is_first_order, order.customer_phone, existingFeedback?.app_rating])
-
-  // Step state: 'food' (Tahap 1: Makanan & Menu) | 'app' (Tahap 2: Rating Aplikasi)
-  const [step, setStep] = useState<'food' | 'app'>('food')
-  const [stepNotice, setStepNotice] = useState<string | null>(null)
+  // Step state: 'menu' (Langkah 1: Rating Menu) -> 'app' (Langkah 2: Rating Aplikasi)
+  const [step, setStep] = useState<'menu' | 'app'>('menu')
 
   const [isEditing, setIsEditing] = useState<boolean>(!existingFeedback)
   const [saving, setSaving] = useState(false)
@@ -202,14 +173,14 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     }))
   }
 
-  // Check if at least one food/menu rating is selected
+  // Check if user has selected any rating for menu or resto
   const hasAnyItemRating = Object.values(itemFeedbacks).some((it) => it.rating > 0)
-  const hasFoodRating = restoRating > 0 || hasAnyItemRating
+  const hasMenuOrFoodRating = hasAnyItemRating || restoRating > 0
 
-  // TAHAP 1: Submit Food / Menu Rating
-  const handleSaveFoodStep = async () => {
-    if (!hasFoodRating) {
-      setError('Silakan berikan rating minimal untuk resto atau salah satu menu yang dipesan.')
+  // --- LANGKAH 1: SIMPAN RATING MENU & RESTO ---
+  const handleSaveMenuStep = async () => {
+    if (!hasMenuOrFoodRating) {
+      setError('Silakan beri bintang minimal untuk salah satu menu atau resto terlebih dahulu.')
       return
     }
 
@@ -233,11 +204,11 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
         .filter(Boolean) as OrderItemFeedback[]
 
       const payload = {
-        rating: restoRating || (itemsPayload[0]?.rating ?? 5),
+        rating: (itemsPayload[0]?.rating ?? restoRating) || 5,
         resto_rating: restoRating || undefined,
         resto_reason: restoReason.trim(),
         items_feedback: itemsPayload,
-        // Preserve any already existing app rating or comments
+        // Preserve any existing app rating & comment
         app_rating: appRating || undefined,
         app_reason: appReason.trim() || undefined,
         comment: comment.trim() || undefined,
@@ -246,28 +217,27 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
       const result = await customerApi.submitFeedback(order.id, payload)
       onSaved(result)
 
-      if (isFirstOrderCustomer) {
-        // First-time orderer: Proceed to Step 2 (Rating Aplikasi)
+      if (isEligibleForAppRating) {
+        // Ganti tampilan ke Langkah 2: Rating Aplikasi (secara bertahap)
         setStep('app')
-        setStepNotice('Rating makanan berhasil disimpan! Selanjutnya, bagaimana pengalaman Anda menggunakan aplikasi Mareme?')
         cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       } else {
-        // Repeat customer: Rating menu only, finish flow!
+        // User lama yang sudah pernah order: Cukup rating menu, proses langsung selesai
         setIsEditing(false)
-        setSuccessMsg('Terima kasih! Penilaian makanan Anda telah berhasil disimpan.')
+        setSuccessMsg('Terima kasih! Penilaian menu Anda telah berhasil disimpan.')
         cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }
     } catch (err) {
-      setError(errorMessage(err, 'Gagal menyimpan penilaian makanan.'))
+      setError(errorMessage(err, 'Gagal menyimpan penilaian menu.'))
     } finally {
       setSaving(false)
     }
   }
 
-  // TAHAP 2: Submit Application Rating (First order only)
+  // --- LANGKAH 2: SIMPAN RATING APLIKASI ---
   const handleSaveAppStep = async () => {
     if (appRating <= 0) {
-      setError('Silakan pilih rating bintang untuk aplikasi (1-5), atau klik "Lewati" jika tidak ingin menilai aplikasi.')
+      setError('Silakan pilih rating bintang aplikasi (1-5), atau klik "Lewati" jika tidak ingin menilai aplikasi.')
       return
     }
 
@@ -309,19 +279,19 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
       setSuccessMsg('Terima kasih banyak! Penilaian lengkap Anda telah berhasil disimpan.')
       cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     } catch (err) {
-      setError(errorMessage(err, 'Gagal menyimpan feedback aplikasi.'))
+      setError(errorMessage(err, 'Gagal menyimpan penilaian aplikasi.'))
     } finally {
       setSaving(false)
     }
   }
 
-  // Skip app rating (food rating is already safely saved in Step 1)
+  // Lewati rating aplikasi
   const handleSkipAppStep = () => {
     if (order.customer_phone) {
       localStorage.setItem(`mareme_app_rated_${order.customer_phone}`, '1')
     }
     setIsEditing(false)
-    setSuccessMsg('Terima kasih! Penilaian makanan Anda telah tersimpan.')
+    setSuccessMsg('Terima kasih! Penilaian menu Anda telah berhasil disimpan.')
     cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -413,7 +383,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     )
   }
 
-  // --- READ-ONLY SUMMARY VIEW ---
+  // --- READ-ONLY SUMMARY VIEW (SETELAH SUBMIT LENGKAP) ---
   if (!isEditing && existingFeedback) {
     const ratedItems = existingFeedback.items_feedback ?? []
     return (
@@ -438,9 +408,8 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
             type="button"
             onClick={() => {
               setIsEditing(true)
-              setStep('food')
+              setStep('menu')
               setError(null)
-              setStepNotice(null)
             }}
             className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-[11px] font-bold text-stone-700 transition-colors flex items-center gap-1.5 shrink-0"
           >
@@ -458,6 +427,34 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
 
         {/* Rating Breakdown */}
         <div className="space-y-3">
+          {/* Menu Items Rated */}
+          {ratedItems.length > 0 && (
+            <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-2">
+              <span className="text-[11px] font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
+                <i className="fa-solid fa-utensils text-amber-500" aria-hidden="true" />
+                Menu yang Dinilai:
+              </span>
+              <div className="space-y-2 divide-y divide-stone-200/60">
+                {ratedItems.map((item) => (
+                  <div key={item.order_item_id || item.item_name} className="pt-2 first:pt-0">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-stone-800">{item.item_name}</span>
+                      <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
+                        <i className="fa-solid fa-star" aria-hidden="true" />
+                        {item.rating} / 5
+                      </span>
+                    </div>
+                    {item.reason && (
+                      <p className="text-[11px] text-stone-500 italic mt-0.5">
+                        &ldquo;{item.reason}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Resto */}
           {existingFeedback.resto_rating ? (
             <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-1">
@@ -477,47 +474,9 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
                 </p>
               )}
             </div>
-          ) : (
-            <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-1">
-              <div className="flex items-center justify-between text-xs font-bold text-stone-800">
-                <span>Rating Keseluruhan</span>
-                <span className="text-amber-600 flex items-center gap-1 font-mono font-extrabold">
-                  <i className="fa-solid fa-star text-xs" aria-hidden="true" />
-                  {existingFeedback.rating} / 5
-                </span>
-              </div>
-            </div>
-          )}
+          ) : null}
 
-          {/* Menu Items Rated */}
-          {ratedItems.length > 0 && (
-            <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 space-y-2">
-              <span className="text-[11px] font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
-                <i className="fa-solid fa-bowl-food text-amber-500" aria-hidden="true" />
-                Menu yang Dinilai:
-              </span>
-              <div className="space-y-1.5 divide-y divide-stone-200/60">
-                {ratedItems.map((item) => (
-                  <div key={item.order_item_id || item.item_name} className="pt-1.5 first:pt-0">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-stone-800">{item.item_name}</span>
-                      <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
-                        <i className="fa-solid fa-star" aria-hidden="true" />
-                        {item.rating} / 5
-                      </span>
-                    </div>
-                    {item.reason && (
-                      <p className="text-[11px] text-stone-500 italic mt-0.5">
-                        &ldquo;{item.reason}&rdquo;
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* App (Only shown if rated) */}
+          {/* App (Hanya jika pernah dinilai) */}
           {existingFeedback.app_rating ? (
             <div className="p-3 rounded-2xl bg-indigo-50/60 border border-indigo-200/70 space-y-1">
               <div className="flex items-center justify-between text-xs font-bold text-stone-800">
@@ -561,160 +520,54 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     )
   }
 
-  // --- FORM / STEP-BY-STEP EDITING VIEW ---
-  return (
-    <section
-      ref={cardRef}
-      className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-5"
-    >
-      {/* Step Indicator Tabs for First-time orderer */}
-      {isFirstOrderCustomer && (
-        <div className="flex items-center gap-2 p-1 bg-stone-100/90 rounded-2xl border border-stone-200/80">
-          <button
-            type="button"
-            onClick={() => setStep('food')}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-              step === 'food'
-                ? 'bg-white text-stone-900 shadow-xs'
-                : 'text-stone-500 hover:text-stone-700'
-            }`}
-          >
-            <span
-              className={`w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center ${
-                step === 'food'
-                  ? 'bg-amber-500 text-white'
-                  : hasFoodRating
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-stone-200 text-stone-600'
-              }`}
-            >
-              {hasFoodRating && step !== 'food' ? (
-                <i className="fa-solid fa-check text-[10px]" aria-hidden="true" />
-              ) : (
-                '1'
-              )}
-            </span>
-            <span>Rating Makanan</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (hasFoodRating || existingFeedback) {
-                setStep('app')
-                setError(null)
-              }
-            }}
-            disabled={!hasFoodRating && !existingFeedback}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-              step === 'app'
-                ? 'bg-white text-stone-900 shadow-xs'
-                : 'text-stone-500 hover:text-stone-700 disabled:opacity-40 disabled:cursor-not-allowed'
-            }`}
-          >
-            <span
-              className={`w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center ${
-                step === 'app' ? 'bg-indigo-600 text-white' : 'bg-stone-200 text-stone-600'
-              }`}
-            >
-              2
-            </span>
-            <span>Rating Aplikasi</span>
-          </button>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <div
-          className={`w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center text-lg ${
-            step === 'food' ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'
-          }`}
-        >
-          <i
-            className={`fa-solid ${
-              step === 'food' ? 'fa-bowl-food' : 'fa-mobile-screen-button'
-            }`}
-            aria-hidden="true"
-          />
-        </div>
-        <div>
-          <h3 className="font-serif font-bold text-sm text-stone-900">
-            {step === 'food'
-              ? existingFeedback
-                ? 'Perbarui Penilaian Makanan'
-                : 'Bagaimana Rasa & Kualitas Pesanan Anda?'
-              : 'Bagaimana Pengalaman Memesan di Aplikasi?'}
-          </h3>
-          <p className="text-[11px] text-stone-500 mt-0.5">
-            {step === 'food'
-              ? isFirstOrderCustomer
-                ? 'Beri bintang pada resto & menu pesanan, lalu klik Kirim di bawah untuk lanjut.'
-                : 'Beri bintang pada resto & menu pesanan, lalu klik Kirim di bawah untuk menyimpan.'
-              : 'Penilaian makanan Anda sudah tersimpan. Masukan Anda sangat berharga untuk perbaikan aplikasi.'}
-          </p>
-        </div>
-      </div>
-
-      {stepNotice && (
-        <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-start gap-2 animate-fadeIn">
-          <i className="fa-solid fa-circle-check text-emerald-600 mt-0.5 shrink-0" aria-hidden="true" />
-          <span>{stepNotice}</span>
-        </div>
-      )}
-
-      {error && (
-        <div
-          role="alert"
-          className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-start gap-2"
-        >
-          <i className="fa-solid fa-circle-exclamation mt-0.5 shrink-0" aria-hidden="true" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* STEP 1: FOOD & MENU RATING */}
-      {step === 'food' && (
-        <div className="space-y-4">
-          {/* 1. RESTO RATING & REASON */}
-          <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
-                  <i className="fa-solid fa-store text-brand-600 text-xs" aria-hidden="true" />
-                  Rating Resto ({order.branch?.name ?? 'Outlet'})
-                </h4>
-                <p className="text-[11px] text-stone-500">Kualitas makanan & pelayanan resto</p>
-              </div>
-            </div>
-
-            {renderStarButtons(restoRating, (val) => setRestoRating(val), 'resto', 'md')}
-
-            {restoRating > 0 && (
-              <FeedbackReasonInput
-                label="Alasan penilaian resto:"
-                value={restoReason}
-                onChange={setRestoReason}
-                placeholder="Ketik alasan atau pilih saran autocomplete..."
-                suggestions={RESTO_ALL_SUGGESTIONS}
-                chips={
-                  restoRating >= 4
-                    ? RESTO_POSITIVE_SUGGESTIONS.slice(0, 5)
-                    : RESTO_CONSTRUCTIVE_SUGGESTIONS.slice(0, 5)
-                }
-              />
-            )}
+  // --- LANGKAH 1: RATING MENU (Tampil Selalu Setiap Order) ---
+  if (step === 'menu') {
+    return (
+      <section
+        ref={cardRef}
+        className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-5"
+      >
+        {/* Header Langkah 1 */}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+            <i className="fa-solid fa-utensils" aria-hidden="true" />
           </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                Langkah 1
+              </span>
+            </div>
+            <h3 className="font-serif font-bold text-sm text-stone-900 mt-1">
+              Bagaimana Rasa Menu Pesanan Anda?
+            </h3>
+            <p className="text-[11px] text-stone-500 mt-0.5">
+              Beri rating bintang untuk menu yang dinikmati, lalu klik tombol Simpan di bawah.
+            </p>
+          </div>
+        </div>
 
-          {/* 2. ORDERED MENU ITEMS RATING & REASON */}
+        {error && (
+          <div
+            role="alert"
+            className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-start gap-2"
+          >
+            <i className="fa-solid fa-circle-exclamation mt-0.5 shrink-0" aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {/* List Menu yang Dipesan */}
           {order.items && order.items.length > 0 && (
             <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200 space-y-4">
               <div>
                 <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
-                  <i className="fa-solid fa-utensils text-amber-600 text-xs" aria-hidden="true" />
-                  Rating Menu yang Dipesan ({order.items.length} menu)
+                  <i className="fa-solid fa-bowl-food text-amber-600 text-xs" aria-hidden="true" />
+                  Menu yang Dipesan ({order.items.length} menu)
                 </h4>
                 <p className="text-[11px] text-stone-500">
-                  Beri rating & ulasan untuk masing-masing menu yang Anda nikmati
+                  Beri rating & ulasan untuk masing-masing menu yang Anda pesan
                 </p>
               </div>
 
@@ -723,7 +576,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
                   const currentItem = itemFeedbacks[item.id] || { rating: 0, reason: '' }
                   return (
                     <div key={item.id} className="pt-3 first:pt-0 space-y-2.5">
-                      {/* Item info header */}
+                      {/* Info Item */}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="w-6 h-6 rounded-lg bg-stone-200/70 text-stone-600 text-xs flex items-center justify-center shrink-0">
@@ -738,7 +591,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
                         </div>
                       </div>
 
-                      {/* Item star rating */}
+                      {/* Star Rating Menu */}
                       {renderStarButtons(
                         currentItem.rating,
                         (val) => handleItemRatingChange(item.id, val),
@@ -746,7 +599,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
                         'sm'
                       )}
 
-                      {/* Item reason input with autocomplete */}
+                      {/* Alasan Review Menu */}
                       {currentItem.rating > 0 && (
                         <FeedbackReasonInput
                           label={`Alasan untuk ${item.item_name}:`}
@@ -768,60 +621,84 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
             </div>
           )}
 
-          {/* Optional kitchen comment if repeat customer */}
-          {!isFirstOrderCustomer && (
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-bold text-stone-600">
-                Catatan Tambahan untuk Dapur/Resto (Opsional)
-              </label>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                maxLength={500}
-                rows={2}
-                placeholder="Tuliskan pesan, saran rasa, atau kritik untuk resto..."
-                className="w-full px-3 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white text-stone-800 placeholder:text-stone-400 transition-colors"
-              />
+          {/* Rating Keseluruhan Restoran */}
+          <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70 space-y-3">
+            <div>
+              <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+                <i className="fa-solid fa-store text-brand-600 text-xs" aria-hidden="true" />
+                Rating Resto ({order.branch?.name ?? 'Outlet'})
+              </h4>
+              <p className="text-[11px] text-stone-500">Kualitas makanan & pelayanan resto</p>
             </div>
-          )}
 
-          {/* Explicit visual prompt reminding user to click submit */}
-          {hasFoodRating && (
-            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs font-semibold shadow-xs">
+            {renderStarButtons(restoRating, (val) => setRestoRating(val), 'resto', 'md')}
+
+            {restoRating > 0 && (
+              <FeedbackReasonInput
+                label="Alasan penilaian resto:"
+                value={restoReason}
+                onChange={setRestoReason}
+                placeholder="Ketik alasan atau pilih saran cepat..."
+                suggestions={RESTO_ALL_SUGGESTIONS}
+                chips={
+                  restoRating >= 4
+                    ? RESTO_POSITIVE_SUGGESTIONS.slice(0, 5)
+                    : RESTO_CONSTRUCTIVE_SUGGESTIONS.slice(0, 5)
+                }
+              />
+            )}
+          </div>
+
+          {/* Catatan Tambahan (Opsional) */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-bold text-stone-600">
+              Catatan Tambahan untuk Kami (Opsional)
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              maxLength={500}
+              rows={2}
+              placeholder="Tuliskan pesan, kritik rasa, atau saran lainnya..."
+              className="w-full px-3 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white text-stone-800 placeholder:text-stone-400 transition-colors"
+            />
+          </div>
+
+          {/* Reminder visual bahwa setelah rating harus klik submit */}
+          {hasMenuOrFoodRating && (
+            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 text-xs font-semibold shadow-xs">
               <i className="fa-solid fa-circle-check text-amber-600 text-sm shrink-0" aria-hidden="true" />
               <div className="flex-1">
                 <span className="font-bold block text-stone-900">Rating sudah Anda pilih!</span>
                 <span className="text-[11px] text-stone-600">
-                  {isFirstOrderCustomer
-                    ? 'Klik tombol "Kirim & Lanjut" di bawah agar ulasan tersimpan.'
-                    : 'Klik tombol "Kirim Penilaian" di bawah agar ulasan tersimpan.'}
+                  Klik tombol <strong>&quot;{isEligibleForAppRating ? 'Kirim & Lanjut ke Rating Aplikasi' : 'Kirim Penilaian Menu'}&quot;</strong> di bawah untuk menyimpan.
                 </span>
               </div>
             </div>
           )}
 
-          {/* Submit Button for Step 1 */}
+          {/* Submit Button Langkah 1 */}
           <div className="space-y-2 pt-1">
             <button
               type="button"
-              onClick={() => void handleSaveFoodStep()}
-              disabled={saving || !hasFoodRating}
+              onClick={() => void handleSaveMenuStep()}
+              disabled={saving || !hasMenuOrFoodRating}
               className="w-full py-3.5 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2.5 shadow-md"
             >
               {saving ? (
                 <>
                   <i className="fa-solid fa-circle-notch fa-spin text-sm" aria-hidden="true" />
-                  <span>Menyimpan Penilaian Makanan...</span>
+                  <span>Menyimpan Rating Menu...</span>
                 </>
-              ) : isFirstOrderCustomer ? (
+              ) : isEligibleForAppRating ? (
                 <>
-                  <span>Kirim Penilaian & Lanjut ke Rating Aplikasi</span>
+                  <span>Kirim &amp; Lanjut ke Rating Aplikasi</span>
                   <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true" />
                 </>
               ) : (
                 <>
                   <i className="fa-solid fa-paper-plane text-xs" aria-hidden="true" />
-                  <span>{existingFeedback ? 'Perbarui Penilaian Makanan' : 'Kirim Penilaian Makanan'}</span>
+                  <span>{existingFeedback ? 'Perbarui Penilaian Menu' : 'Kirim Penilaian Menu'}</span>
                 </>
               )}
             </button>
@@ -832,7 +709,6 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
                 onClick={() => {
                   setIsEditing(false)
                   setError(null)
-                  setStepNotice(null)
                 }}
                 disabled={saving}
                 className="w-full py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold transition-colors"
@@ -842,113 +718,151 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
             )}
           </div>
         </div>
-      )}
+      </section>
+    )
+  }
 
-      {/* STEP 2: APPLICATION RATING (Only for first-time orderer) */}
-      {step === 'app' && isFirstOrderCustomer && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200/70 space-y-3">
-            <div>
-              <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
-                <i className="fa-solid fa-mobile-screen text-indigo-600 text-xs" aria-hidden="true" />
-                Rating Kemudahan Aplikasi Mareme
-              </h4>
-              <p className="text-[11px] text-stone-500">
-                Kemudahan pemesanan, kecepatan aplikasi, dan proses pembayaran
-              </p>
-            </div>
-
-            {renderStarButtons(appRating, (val) => setAppRating(val), 'app', 'md')}
-
-            {appRating > 0 && (
-              <FeedbackReasonInput
-                label="Alasan penilaian aplikasi:"
-                value={appReason}
-                onChange={setAppReason}
-                placeholder="Ketik saran aplikasi atau pilih pilihan cepat..."
-                suggestions={APP_ALL_SUGGESTIONS}
-                chips={
-                  appRating >= 4
-                    ? APP_POSITIVE_SUGGESTIONS.slice(0, 5)
-                    : APP_CONSTRUCTIVE_SUGGESTIONS.slice(0, 5)
-                }
-              />
-            )}
+  // --- LANGKAH 2: RATING APLIKASI (Hanya Muncul untuk User yang Belum Pernah Order) ---
+  return (
+    <section
+      ref={cardRef}
+      className="bg-white rounded-3xl p-5 sm:p-6 border border-indigo-200/90 shadow-sm space-y-5"
+    >
+      {/* Header Langkah 2 */}
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 shrink-0 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg">
+          <i className="fa-solid fa-mobile-screen-button" aria-hidden="true" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+              ✓ Menu Tersimpan
+            </span>
+            <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+              Langkah 2
+            </span>
           </div>
+          <h3 className="font-serif font-bold text-sm text-stone-900 mt-1">
+            Bagaimana Pengalaman Menggunakan Aplikasi?
+          </h3>
+          <p className="text-[11px] text-stone-500 mt-0.5">
+            Rating menu sudah tersimpan! Mohon beri nilai untuk kemudahan dan kecepatan aplikasi Mareme.
+          </p>
+        </div>
+      </div>
 
-          {/* General comment */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-bold text-stone-600">
-              Catatan atau Masukan Lainnya (Opsional)
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              maxLength={500}
-              rows={2}
-              placeholder="Tuliskan kritik, masukan fitur, atau pesan tambahan untuk kami..."
-              className="w-full px-3 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white text-stone-800 placeholder:text-stone-400 transition-colors"
-            />
-          </div>
-
-          {appRating > 0 && (
-            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-950 text-xs font-semibold shadow-xs">
-              <i className="fa-solid fa-circle-check text-indigo-600 text-sm shrink-0" aria-hidden="true" />
-              <div className="flex-1">
-                <span className="font-bold block">Rating aplikasi siap dikirim!</span>
-                <span className="text-[11px] text-stone-600">
-                  Klik tombol &quot;Kirim Penilaian Aplikasi&quot; di bawah untuk menyelesaikan.
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Action buttons for Step 2 */}
-          <div className="space-y-2 pt-1">
-            <button
-              type="button"
-              onClick={() => void handleSaveAppStep()}
-              disabled={saving || appRating === 0}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2.5 shadow-md"
-            >
-              {saving ? (
-                <>
-                  <i className="fa-solid fa-circle-notch fa-spin text-sm" aria-hidden="true" />
-                  <span>Menyimpan Feedback Aplikasi...</span>
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-paper-plane text-xs" aria-hidden="true" />
-                  <span>Kirim Penilaian Aplikasi</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSkipAppStep}
-              disabled={saving}
-              className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
-            >
-              <span>Lewati & Selesai</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setStep('food')
-                setError(null)
-                setStepNotice(null)
-              }}
-              disabled={saving}
-              className="w-full py-1.5 text-stone-500 hover:text-stone-700 text-[11px] font-medium transition-colors flex items-center justify-center gap-1"
-            >
-              <i className="fa-solid fa-chevron-left text-[9px]" aria-hidden="true" />
-              <span>Kembali ke Penilaian Makanan</span>
-            </button>
-          </div>
+      {error && (
+        <div
+          role="alert"
+          className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-start gap-2"
+        >
+          <i className="fa-solid fa-circle-exclamation mt-0.5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
         </div>
       )}
+
+      <div className="space-y-4">
+        {/* Rating Kemudahan Aplikasi */}
+        <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200/70 space-y-3">
+          <div>
+            <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+              <i className="fa-solid fa-mobile-screen text-indigo-600 text-xs" aria-hidden="true" />
+              Rating Kemudahan Aplikasi Mareme
+            </h4>
+            <p className="text-[11px] text-stone-500">
+              Kemudahan pemesanan, kecepatan aplikasi, dan proses pembayaran
+            </p>
+          </div>
+
+          {renderStarButtons(appRating, (val) => setAppRating(val), 'app', 'md')}
+
+          {appRating > 0 && (
+            <FeedbackReasonInput
+              label="Alasan penilaian aplikasi:"
+              value={appReason}
+              onChange={setAppReason}
+              placeholder="Ketik saran aplikasi atau pilih pilihan cepat..."
+              suggestions={APP_ALL_SUGGESTIONS}
+              chips={
+                appRating >= 4
+                  ? APP_POSITIVE_SUGGESTIONS.slice(0, 5)
+                  : APP_CONSTRUCTIVE_SUGGESTIONS.slice(0, 5)
+              }
+            />
+          )}
+        </div>
+
+        {/* Catatan Masukan Aplikasi */}
+        <div className="space-y-1.5">
+          <label className="block text-[11px] font-bold text-stone-600">
+            Saran atau Masukan Tambahan untuk Aplikasi (Opsional)
+          </label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={500}
+            rows={2}
+            placeholder="Tuliskan kritik, masukan fitur, atau pesan tambahan untuk kami..."
+            className="w-full px-3 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white text-stone-800 placeholder:text-stone-400 transition-colors"
+          />
+        </div>
+
+        {appRating > 0 && (
+          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-950 text-xs font-semibold shadow-xs">
+            <i className="fa-solid fa-circle-check text-indigo-600 text-sm shrink-0" aria-hidden="true" />
+            <div className="flex-1">
+              <span className="font-bold block">Rating aplikasi siap dikirim!</span>
+              <span className="text-[11px] text-stone-600">
+                Klik tombol &quot;Kirim Penilaian Aplikasi&quot; di bawah untuk menyelesaikan.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons Langkah 2 */}
+        <div className="space-y-2 pt-1">
+          <button
+            type="button"
+            onClick={() => void handleSaveAppStep()}
+            disabled={saving || appRating === 0}
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2.5 shadow-md"
+          >
+            {saving ? (
+              <>
+                <i className="fa-solid fa-circle-notch fa-spin text-sm" aria-hidden="true" />
+                <span>Menyimpan Feedback Aplikasi...</span>
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-paper-plane text-xs" aria-hidden="true" />
+                <span>Kirim Penilaian Aplikasi</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSkipAppStep}
+            disabled={saving}
+            className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+          >
+            <span>Lewati &amp; Selesai</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStep('menu')
+              setError(null)
+            }}
+            disabled={saving}
+            className="w-full py-1.5 text-stone-500 hover:text-stone-700 text-[11px] font-medium transition-colors flex items-center justify-center gap-1"
+          >
+            <i className="fa-solid fa-chevron-left text-[9px]" aria-hidden="true" />
+            <span>Kembali ke Rating Menu</span>
+          </button>
+        </div>
+      </div>
     </section>
   )
 }
