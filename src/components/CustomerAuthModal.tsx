@@ -88,7 +88,7 @@ export const CustomerAuthModal: React.FC = () => {
               </p>
             </div>
 
-            <form onSubmit={handleProceedToConfirm} className="space-y-4">
+            <form noValidate onSubmit={handleProceedToConfirm} className="space-y-4">
               <div className="space-y-1.5 text-left">
                 <label htmlFor="auth-phone" className="block text-xs font-bold text-stone-800">
                   Nomor WhatsApp 👋 <span className="text-red-500">*</span>
@@ -123,9 +123,9 @@ export const CustomerAuthModal: React.FC = () => {
                 </label>
                 <input
                   id="auth-name"
-                    type="text"
-                    required
-                    minLength={2}
+                  type="text"
+                  required
+                  minLength={2}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Contoh: Pak Budi / Bu Siti"
