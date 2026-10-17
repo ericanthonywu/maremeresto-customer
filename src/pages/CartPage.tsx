@@ -23,8 +23,10 @@ export const CartPage: React.FC = () => {
   const [locationOpen, setLocationOpen] = useState(false)
 
   const quote = selectedBranch ? quoteFor(selectedBranch.id) : null
-  const deliveryFee = quote?.delivery_fee ?? 0
-  const serviceFee = quote?.service_fee ?? 0
+  const isOutOfRange = Boolean(location && quote && !quote.within_radius)
+  const isOutsideSolo = Boolean(location && quote && quote.within_solo === false)
+  const deliveryFee = quote && quote.within_radius ? quote.delivery_fee : 0
+  const serviceFee = quote?.service_fee ?? selectedBranch?.service_fee ?? 2000
   const grandTotal = Math.max(0, subtotal + deliveryFee + serviceFee - discount)
 
   // Re-price whenever the basket total changes, so crossing the free-delivery
@@ -225,25 +227,45 @@ export const CartPage: React.FC = () => {
                   <>
                     <div className="flex justify-between text-stone-600">
                       <span>Biaya Pengiriman ({quote.distance_km} km)</span>
-                      <span className="font-bold text-stone-900">
-                        {quotesLoading ? '…' : deliveryFee === 0 ? 'Gratis Kirim' : formatRupiah(deliveryFee)}
-                      </span>
+                      {isOutOfRange ? (
+                        <span className="font-bold text-red-600">Di luar jangkauan</span>
+                      ) : (
+                        <span className="font-bold text-stone-900">
+                          {quotesLoading ? '…' : deliveryFee === 0 ? 'Gratis Kirim' : formatRupiah(deliveryFee)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex justify-between text-stone-600">
                       <span>Biaya Layanan Aplikasi</span>
                       <span className="font-bold text-stone-900">{formatRupiah(serviceFee)}</span>
                     </div>
+                    {isOutOfRange && (
+                      <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-start gap-2">
+                        <i className="fa-solid fa-triangle-exclamation mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>
+                          {isOutsideSolo
+                            ? 'Alamat Anda di luar area Solo Raya. Pesan antar tidak tersedia, namun Anda bisa memilih Ambil di Cabang di halaman selanjutnya.'
+                            : `Alamat berjarak ${quote.distance_km} km (maks. ${quote.max_radius_km} km). Pilih cabang lebih dekat atau Ambil di Cabang saat checkout.`}
+                        </span>
+                      </div>
+                    )}
                   </>
                 ) : (
-                  <button
-                    onClick={() => setLocationOpen(true)}
-                    className="w-full text-left p-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 hover:bg-stone-100 transition-colors flex items-center gap-2"
-                  >
-                    <i className="fa-solid fa-location-crosshairs text-brand-600 shrink-0" aria-hidden="true"></i>
-                    <span className="text-[11px] text-stone-600 font-semibold">
-                      Pilih alamat rumah untuk melihat biaya pengiriman
-                    </span>
-                  </button>
+                  <>
+                    <div className="flex justify-between text-stone-600">
+                      <span>Biaya Layanan Aplikasi</span>
+                      <span className="font-bold text-stone-900">{formatRupiah(serviceFee)}</span>
+                    </div>
+                    <button
+                      onClick={() => setLocationOpen(true)}
+                      className="w-full text-left p-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 hover:bg-stone-100 transition-colors flex items-center gap-2"
+                    >
+                      <i className="fa-solid fa-location-crosshairs text-brand-600 shrink-0" aria-hidden="true"></i>
+                      <span className="text-[11px] text-stone-600 font-semibold">
+                        Pilih alamat rumah untuk melihat biaya pengiriman
+                      </span>
+                    </button>
+                  </>
                 )}
 
                 {discount > 0 && (

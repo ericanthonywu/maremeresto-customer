@@ -134,8 +134,9 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
               <div className="rounded-2xl p-3 border border-amber-200 bg-amber-50 text-xs text-amber-800 flex items-start gap-2">
                 <i className="fa-solid fa-circle-exclamation mt-0.5 shrink-0" aria-hidden="true"></i>
                 <span>
-                  Di luar jangkauan antar outlet ini (maks. {quote.max_radius_km} km). Anda masih bisa
-                  memesan untuk diambil sendiri.
+                  {quote.within_solo === false
+                    ? 'Lokasi di luar wilayah Solo Raya. Pesan antar tidak tersedia, namun Anda masih bisa memesan untuk diambil di cabang.'
+                    : `Di luar jangkauan antar outlet ini (maks. ${quote.max_radius_km} km). Anda masih bisa memesan untuk diambil sendiri.`}
                 </span>
               </div>
             ) : (

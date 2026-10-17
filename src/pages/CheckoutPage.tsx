@@ -38,7 +38,7 @@ function scheduledTimestamp(time: string): string | null {
 }
 
 export const CheckoutPage: React.FC = () => {
-  const { items, subtotal, discount, appliedPromo, clearCart } = useCart()
+  const { items, subtotal, discount, setDiscount, appliedPromo, clearCart } = useCart()
   const { branches, selectedBranch, setSelectedBranch, nearestBranch, quoteFor, refreshQuotes, quotesLoading, quotesError } =
     useBranch()
   const { location } = useLocation()
@@ -48,11 +48,30 @@ export const CheckoutPage: React.FC = () => {
 
   const [orderType, setOrderType] = useState<OrderType>('delivery')
   const [name, setName] = useState(profile.name)
+  const [nameError, setNameError] = useState<string | null>(null)
   const [phone, setPhone] = useState(profile.phone)
   const [phoneError, setPhoneError] = useState<string | null>(null)
   // Required house/landmark detail; the main address comes from the selected map location.
   const [addressDetail, setAddressDetail] = useState('')
+  const [addressDetailError, setAddressDetailError] = useState<string | null>(null)
   const [scheduledTime, setScheduledTime] = useState('')
+  const [scheduledTimeError, setScheduledTimeError] = useState<string | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+
+  const scheduledTimeRef = useRef<HTMLInputElement>(null)
+  const locationBtnRef = useRef<HTMLButtonElement>(null)
+  const addressDetailRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const phoneRef = useRef<HTMLInputElement>(null)
+
+  const focusField = useCallback((el: HTMLElement | null) => {
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.focus({ preventScroll: true })
+    window.setTimeout(() => {
+      el.focus({ preventScroll: true })
+    }, 300)
+  }, [])
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStage, setSubmitStage] = useState<string>('')
@@ -63,6 +82,11 @@ export const CheckoutPage: React.FC = () => {
   const submitInFlightRef = useRef(false)
 
   const isDelivery = orderType === 'delivery' || orderType === 'scheduled'
+
+  // Clear location error once location is selected
+  useEffect(() => {
+    if (location) setLocationError(null)
+  }, [location])
 
   // Auto-select the nearest outlet that can serve this basket.
   const activeBranch: Branch | null = selectedBranch ?? nearestBranch ?? branches[0] ?? null
@@ -79,40 +103,87 @@ export const CheckoutPage: React.FC = () => {
 
   const quote: BranchDeliveryQuote | null = activeBranch ? quoteFor(activeBranch.id) : null
 
-  const deliveryFee = isDelivery ? (quote?.delivery_fee ?? 0) : 0
-  const serviceFee = quote?.service_fee ?? 0
+  const isOutOfRange = Boolean(isDelivery && quote && !quote.within_radius)
+  const isOutsideSolo = Boolean(isDelivery && quote && quote.within_solo === false)
+
+  const deliveryFee = isDelivery && quote && quote.within_radius ? quote.delivery_fee : 0
+  const serviceFee = quote?.service_fee ?? activeBranch?.service_fee ?? 2000
+
+  // Re-validate applied promo when switching between delivery/pickup or when deliveryFee changes
+  // so free_delivery promos do not subtract from food subtotal on pickup orders.
+  useEffect(() => {
+    if (!appliedPromo || subtotal <= 0) return
+    let cancelled = false
+    customerApi
+      .validatePromo(appliedPromo, subtotal, deliveryFee)
+      .then((res) => {
+        if (!cancelled) setDiscount(res.discount_amount)
+      })
+      .catch(() => {
+        if (!cancelled) setDiscount(0)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [appliedPromo, subtotal, deliveryFee, setDiscount])
+
   const grandTotal = Math.max(0, subtotal + deliveryFee + serviceFee - discount)
 
   const isStoreClosed = !activeBranch || !activeBranch.is_open_now
 
-  /** Everything that must be true before the pay button does anything. */
-  const blocker = useMemo<string | null>(() => {
+  /** Hard non-input blockers that disable ordering altogether. */
+  const hardBlocker = useMemo<string | null>(() => {
     if (items.length === 0) return 'Keranjang pesanan masih kosong.'
     if (!activeBranch) return 'Pilih cabang terlebih dahulu.'
     if (!activeBranch.is_open_now) return `${activeBranch.name} sedang tutup saat ini. Silakan pilih cabang lain.`
     if (unavailableItems.length > 0) {
       return `Stok menu ${unavailableItems[0].cartItem.name} sedang habis di ${activeBranch.name}. Silakan pilih cabang lain atau hapus menu ini.`
     }
+    if (isDelivery && quote && !quote.within_radius) {
+      if (quote.within_solo === false) {
+        return 'Lokasi Anda berada di luar wilayah layanan Kota Surakarta / Solo Raya. Layanan pesan antar hanya tersedia untuk area Solo Raya (maks. 10 km dari cabang). Anda tetap dapat memilih opsi Ambil di Cabang.'
+      }
+      return `Alamat Anda (${quote.distance_km} km) berada di luar jangkauan pengiriman cabang ${activeBranch.name} (maksimal ${quote.max_radius_km} km). Anda bisa memilih cabang lain yang lebih dekat atau memilih opsi Ambil di Cabang.`
+    }
+    return null
+  }, [items, activeBranch, unavailableItems, isDelivery, quote])
+
+  /** Everything that must be true before the order is sent to the API. */
+  const blocker = useMemo<string | null>(() => {
+    if (hardBlocker) return hardBlocker
     if (isDelivery && !location) return 'Pilih atau atur alamat pengiriman terlebih dahulu.'
     if (isDelivery && !quote) return 'Biaya pengiriman belum dapat dihitung. Silakan atur kembali alamat Anda.'
-    if (isDelivery && quote && !quote.within_radius) {
-      return `Alamat Anda (${quote.distance_km} km) berada di luar jangkauan pengiriman cabang ${activeBranch.name} (maksimal ${quote.max_radius_km} km). Anda bisa memilih cabang lain atau memilih opsi ambil sendiri.`
-    }
     if (orderType === 'scheduled' && !scheduledTime) return 'Pilih jam pengiriman pesanan.'
     if (isDelivery && !addressDetail.trim()) return 'Detail alamat & patokan rumah wajib diisi.'
     return null
-  }, [items, activeBranch, unavailableItems, isDelivery, location, quote, orderType, scheduledTime, addressDetail])
+  }, [hardBlocker, isDelivery, location, quote, orderType, scheduledTime, addressDetail])
 
   /** Fields the customer can complete directly before tapping the payment CTA. */
   const incompleteFields = useMemo(() => {
-    const fields: string[] = []
-    if (!name.trim()) fields.push('Nama pemesan')
-    if (!normalizePhone(phone).valid) fields.push('Nomor WhatsApp yang benar')
-    if (isDelivery && !location) fields.push('Alamat lokasi pengiriman')
-    if (isDelivery && !addressDetail.trim()) fields.push('Detail alamat & patokan rumah')
-    if (orderType === 'scheduled' && !scheduledTime) fields.push('Jam pengiriman')
+    const fields: Array<{ label: string; focus: () => void }> = []
+    if (orderType === 'scheduled' && !scheduledTime) {
+      fields.push({ label: 'Jam pengiriman', focus: () => focusField(scheduledTimeRef.current) })
+    }
+    if (isDelivery && !location) {
+      fields.push({
+        label: 'Alamat lokasi pengiriman',
+        focus: () => {
+          focusField(locationBtnRef.current)
+          setLocationOpen(true)
+        },
+      })
+    }
+    if (isDelivery && !addressDetail.trim()) {
+      fields.push({ label: 'Detail alamat & patokan rumah', focus: () => focusField(addressDetailRef.current) })
+    }
+    if (!name.trim() || name.trim().length < 2) {
+      fields.push({ label: 'Nama pemesan', focus: () => focusField(nameRef.current) })
+    }
+    if (!normalizePhone(phone).valid) {
+      fields.push({ label: 'Nomor WhatsApp yang benar', focus: () => focusField(phoneRef.current) })
+    }
     return fields
-  }, [name, phone, isDelivery, location, addressDetail, orderType, scheduledTime])
+  }, [name, phone, isDelivery, location, addressDetail, orderType, scheduledTime, focusField])
 
   const handlePhoneBlur = () => {
     if (!phone.trim()) return
@@ -131,23 +202,53 @@ export const CheckoutPage: React.FC = () => {
       if (submitInFlightRef.current) return
       setErrorMsg(null)
 
+      if (hardBlocker) {
+        setErrorMsg(hardBlocker)
+        return
+      }
+
+      if (orderType === 'scheduled' && !scheduledTime) {
+        const msg = 'Pilih jam pengantaran pesanan terlebih dahulu.'
+        setScheduledTimeError(msg)
+        setErrorMsg(msg)
+        focusField(scheduledTimeRef.current)
+        return
+      }
+
+      if (isDelivery && !location) {
+        const msg = 'Silakan pilih alamat lokasi pengiriman terlebih dahulu.'
+        setLocationError(msg)
+        setErrorMsg(msg)
+        focusField(locationBtnRef.current)
+        setLocationOpen(true)
+        return
+      }
+
+      if (isDelivery && !addressDetail.trim()) {
+        const msg = 'Detail alamat & patokan rumah wajib diisi agar kurir mudah menemukan lokasi Anda.'
+        setAddressDetailError(msg)
+        setErrorMsg(msg)
+        focusField(addressDetailRef.current)
+        return
+      }
+
+      if (!name.trim() || name.trim().length < 2) {
+        const msg = 'Silakan isi nama pemesan (minimal 2 karakter).'
+        setNameError(msg)
+        setErrorMsg(msg)
+        focusField(nameRef.current)
+        return
+      }
+
       const phoneCheck = normalizePhone(phone)
       if (!phoneCheck.valid) {
-        setPhoneError(phoneCheck.error ?? 'Format WhatsApp tidak valid')
+        const msg = phoneCheck.error ?? 'Format nomor WhatsApp tidak valid'
+        setPhoneError(msg)
+        setErrorMsg(msg)
+        focusField(phoneRef.current)
         return
       }
-      if (!name.trim()) {
-        setErrorMsg('Silakan isi nama pemesan.')
-        return
-      }
-      if (isDelivery && !location) {
-        setErrorMsg('Silakan tentukan alamat pengantaran.')
-        return
-      }
-      if (isDelivery && !addressDetail.trim()) {
-        setErrorMsg('Silakan isi detail alamat & patokan.')
-        return
-      }
+
       if (blocker) {
         setErrorMsg(blocker)
         return
@@ -219,8 +320,8 @@ export const CheckoutPage: React.FC = () => {
       }
     },
     [
-      phone, name, isDelivery, addressDetail, blocker, activeBranch, orderType,
-      location, appliedPromo, scheduledTime, items, stockMap, clearCart, navigate,
+      phone, name, isDelivery, addressDetail, hardBlocker, blocker, activeBranch, orderType,
+      location, appliedPromo, scheduledTime, items, stockMap, clearCart, navigate, focusField,
     ]
   )
 
@@ -281,30 +382,78 @@ export const CheckoutPage: React.FC = () => {
               </div>
 
               {orderType === 'scheduled' && (
-                <div className="pt-2 flex items-center gap-2 flex-wrap">
-                  <label htmlFor="scheduled-time" className="text-xs text-stone-600 font-medium">
-                    Jam pengantaran
-                  </label>
-                  <input
-                    id="scheduled-time"
-                    type="time"
-                    required
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                    className="px-3 py-1.5 text-xs bg-stone-50 border border-stone-300 rounded-xl font-bold"
-                  />
-                  {scheduledTime && (
-                    <span className="text-[11px] text-stone-500">
-                      {new Date(scheduledTimestamp(scheduledTime) ?? '').toLocaleString('id-ID', {
-                        weekday: 'long',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
+                <div className="pt-2 space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label htmlFor="scheduled-time" className="text-xs text-stone-600 font-medium">
+                      Jam pengantaran <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      ref={scheduledTimeRef}
+                      id="scheduled-time"
+                      type="time"
+                      required
+                      value={scheduledTime}
+                      onChange={(e) => {
+                        setScheduledTime(e.target.value)
+                        if (e.target.value) {
+                          setScheduledTimeError(null)
+                          setErrorMsg(null)
+                        }
+                      }}
+                      aria-invalid={Boolean(scheduledTimeError)}
+                      aria-describedby={scheduledTimeError ? 'scheduled-time-error' : undefined}
+                      className={`px-3 py-1.5 text-xs rounded-xl font-bold transition-all focus:outline-none ${
+                        scheduledTimeError
+                          ? 'bg-red-50/40 border-2 border-red-500 text-red-800 ring-2 ring-red-500/20'
+                          : 'bg-stone-50 border border-stone-300 focus:border-brand-500'
+                      }`}
+                    />
+                    {scheduledTime && (
+                      <span className="text-[11px] text-stone-500">
+                        {new Date(scheduledTimestamp(scheduledTime) ?? '').toLocaleString('id-ID', {
+                          weekday: 'long',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  {scheduledTimeError && (
+                    <p id="scheduled-time-error" className="text-[11px] text-red-600 font-semibold flex items-center gap-1">
+                      <i className="fa-solid fa-circle-exclamation text-[10px]" aria-hidden="true"></i>
+                      {scheduledTimeError}
+                    </p>
                   )}
                 </div>
               )}
             </fieldset>
+
+            {/* ---- Pickup branch info ---- */}
+            {orderType === 'pickup' && activeBranch && (
+              <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-serif font-bold text-sm text-stone-900">Lokasi Pengambilan Pesanan 🏪</h3>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Bebas Ongkir
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 flex items-start gap-3">
+                  <i className="fa-solid fa-store text-brand-600 mt-0.5 text-sm shrink-0" aria-hidden="true"></i>
+                  <div className="min-w-0 text-xs space-y-0.5">
+                    <span className="block font-bold text-stone-900">{activeBranch.name}</span>
+                    <span className="block text-stone-600 break-words">{activeBranch.address}</span>
+                    {activeBranch.today_hours && (
+                      <span className="block text-[11px] text-stone-500">
+                        Jam operasional hari ini: {activeBranch.today_hours}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[11px] text-stone-500">
+                  Pesanan Anda akan disiapkan di cabang pilihan di bawah ini untuk diambil langsung tanpa biaya pengantaran.
+                </p>
+              </div>
+            )}
 
             {/* ---- Delivery address ---- */}
             {isDelivery && (
@@ -332,19 +481,71 @@ export const CheckoutPage: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setLocationOpen(true)}
-                    className="w-full p-4 rounded-2xl border border-dashed border-brand-300 bg-brand-50/50 hover:bg-brand-50 transition-colors text-left flex items-center gap-3"
-                  >
-                    <i className="fa-solid fa-location-crosshairs text-brand-600 text-lg shrink-0" aria-hidden="true"></i>
-                    <span className="text-xs">
-                      <span className="block font-bold text-stone-900">Pilih Alamat Pengiriman Anda</span>
-                      <span className="block text-stone-500 text-[11px]">
-                        Biaya pengiriman dihitung berdasarkan jarak cabang ke alamat Anda
+                  <div className="space-y-1.5">
+                    <button
+                      ref={locationBtnRef}
+                      type="button"
+                      onClick={() => setLocationOpen(true)}
+                      className={`w-full p-4 rounded-2xl border border-dashed transition-colors text-left flex items-center gap-3 ${
+                        locationError
+                          ? 'border-red-500 bg-red-50/50 ring-2 ring-red-500/20'
+                          : 'border-brand-300 bg-brand-50/50 hover:bg-brand-50'
+                      }`}
+                    >
+                      <i className="fa-solid fa-location-crosshairs text-brand-600 text-lg shrink-0" aria-hidden="true"></i>
+                      <span className="text-xs">
+                        <span className="block font-bold text-stone-900">Pilih Alamat Pengiriman Anda</span>
+                        <span className="block text-stone-500 text-[11px]">
+                          Biaya pengiriman dihitung berdasarkan jarak cabang ke alamat Anda
+                        </span>
                       </span>
-                    </span>
-                  </button>
+                    </button>
+                    {locationError && (
+                      <p className="text-[11px] text-red-600 font-semibold flex items-center gap-1">
+                        <i className="fa-solid fa-circle-exclamation text-[10px]" aria-hidden="true"></i>
+                        {locationError}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {isOutOfRange && quote && activeBranch && (
+                  <div
+                    className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs space-y-2"
+                    role="alert"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <i className="fa-solid fa-ban text-red-600 mt-0.5 text-sm shrink-0" aria-hidden="true"></i>
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-red-900">
+                          {isOutsideSolo
+                            ? 'Lokasi Di Luar Wilayah Surakarta / Solo Raya'
+                            : `Jarak Pengiriman Terlalu Jauh (${quote.distance_km} km)`}
+                        </p>
+                        <p className="text-[11px] text-red-700 leading-relaxed">
+                          {isOutsideSolo
+                            ? 'Maaf, layanan pesan antar hanya tersedia untuk wilayah Kota Surakarta / Solo Raya (maksimal 10 km dari cabang). Pemesanan & pembayaran pesan antar tidak dapat dilanjutkan untuk lokasi ini.'
+                            : `Alamat Anda berjarak ${quote.distance_km} km dari ${activeBranch.name}, melebihi batas maksimal pengantaran (${quote.max_radius_km} km). Silakan pilih cabang lain yang lebih dekat, ubah alamat, atau gunakan Ambil di Cabang.`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1 pl-6">
+                      <button
+                        type="button"
+                        onClick={() => setLocationOpen(true)}
+                        className="px-3 py-1.5 rounded-xl bg-white hover:bg-red-100 text-red-700 border border-red-200 font-bold text-[11px] transition-colors"
+                      >
+                        Ubah Alamat 📍
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOrderType('pickup')}
+                        className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-colors"
+                      >
+                        Beralih ke Ambil di Cabang 🚶
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 <div>
@@ -352,15 +553,34 @@ export const CheckoutPage: React.FC = () => {
                     Detail Alamat & Patokan Rumah <span className="text-red-500">*</span>
                   </label>
                   <input
+                    ref={addressDetailRef}
                     id="address-detail"
                     type="text"
                     required
                     maxLength={300}
                     value={addressDetail}
-                    onChange={(e) => setAddressDetail(e.target.value)}
+                    onChange={(e) => {
+                      setAddressDetail(e.target.value)
+                      if (e.target.value.trim()) {
+                        setAddressDetailError(null)
+                        setErrorMsg(null)
+                      }
+                    }}
+                    aria-invalid={Boolean(addressDetailError)}
+                    aria-describedby={addressDetailError ? 'address-detail-error' : undefined}
                     placeholder="Contoh: Rumah pagar hitam, no. 14A, depan masjid"
-                    className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
+                    className={`w-full px-4 py-2.5 text-xs border rounded-xl focus:outline-none focus:bg-white transition-all ${
+                      addressDetailError
+                        ? 'bg-red-50/40 border-red-500 text-red-900 ring-2 ring-red-500/20 focus:border-red-500'
+                        : 'bg-stone-50 border-stone-300 focus:border-brand-500 text-stone-900'
+                    }`}
                   />
+                  {addressDetailError && (
+                    <p id="address-detail-error" className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1">
+                      <i className="fa-solid fa-circle-exclamation text-[10px]" aria-hidden="true"></i>
+                      {addressDetailError}
+                    </p>
+                  )}
                   <p className="text-[10px] text-stone-500 mt-1">
                     Isi nomor rumah atau patokan penting agar kurir dapat menghantarkan pesanan Anda dengan tepat dan mudah.
                   </p>
@@ -374,9 +594,11 @@ export const CheckoutPage: React.FC = () => {
                 <div>
                   <h3 className="font-serif font-bold text-sm text-stone-900">Outlet</h3>
                   <p className="text-[11px] text-stone-500">
-                    {location
-                      ? 'Jarak dan ongkir dihitung oleh server dari lokasi Anda'
-                      : 'Tentukan lokasi untuk melihat jarak dan ongkir'}
+                    {orderType === 'pickup'
+                      ? 'Pilih cabang tempat Anda akan mengambil pesanan'
+                      : location
+                        ? 'Jarak dan ongkir dihitung oleh server dari lokasi Anda'
+                        : 'Tentukan lokasi untuk melihat jarak dan ongkir'}
                   </p>
                 </div>
                 {quotesLoading && (
@@ -389,6 +611,7 @@ export const CheckoutPage: React.FC = () => {
                   const info = quoteFor(b.id)
                   const isSelected = activeBranch?.id === b.id
                   const unavailable = !b.is_open_now
+                  const branchOutOfRange = isDelivery && info && !info.within_radius
 
                   return (
                     <button
@@ -401,14 +624,16 @@ export const CheckoutPage: React.FC = () => {
                         unavailable
                           ? 'bg-stone-100 border-stone-200 opacity-60 cursor-not-allowed'
                           : isSelected
-                            ? 'bg-amber-50/70 border-brand-500 shadow-md ring-2 ring-brand-500/30'
+                            ? branchOutOfRange
+                              ? 'bg-red-50/70 border-red-400 shadow-md ring-2 ring-red-400/30'
+                              : 'bg-amber-50/70 border-brand-500 shadow-md ring-2 ring-brand-500/30'
                             : 'bg-stone-50/80 border-stone-200 hover:bg-stone-100 hover:border-stone-300'
                       }`}
                     >
                       <div>
                         <div className="flex items-center justify-between gap-1 mb-1">
                           <span className="font-bold text-xs text-stone-900 truncate">{b.name}</span>
-                          {info?.is_nearest && (
+                          {info?.is_nearest && info.within_radius && (
                             <span className="text-[9px] font-extrabold uppercase text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">
                               Terdekat
                             </span>
@@ -422,12 +647,18 @@ export const CheckoutPage: React.FC = () => {
 
                       <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px]">
                         <span className="font-mono font-bold text-brand-700 flex items-center gap-1">
-                          <i className="fa-solid fa-route text-[10px]" aria-hidden="true"></i>
-                          {info ? `${info.distance_km} km` : '—'}
+                          <i className={`fa-solid ${orderType === 'pickup' ? 'fa-store' : 'fa-route'} text-[10px]`} aria-hidden="true"></i>
+                          {info ? `${info.distance_km} km` : orderType === 'pickup' ? 'Ambil' : '—'}
                         </span>
-                        <span className="font-bold text-stone-800">
-                          {info ? (info.delivery_fee === 0 ? 'Gratis' : formatRupiah(info.delivery_fee)) : '—'}
-                        </span>
+                        {orderType === 'pickup' ? (
+                          <span className="font-bold text-emerald-700">Bebas Ongkir</span>
+                        ) : branchOutOfRange ? (
+                          <span className="font-bold text-red-600 text-[10px]">Di luar jangkauan</span>
+                        ) : (
+                          <span className="font-bold text-stone-800">
+                            {info ? (info.delivery_fee === 0 ? 'Gratis' : formatRupiah(info.delivery_fee)) : '—'}
+                          </span>
+                        )}
                       </div>
                     </button>
                   )
@@ -498,15 +729,34 @@ export const CheckoutPage: React.FC = () => {
                   Nama Pemesan / Panggilan *
                 </label>
                 <input
+                  ref={nameRef}
                   id="cust-name"
                   type="text"
                   required
                   maxLength={100}
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    if (e.target.value.trim().length >= 2) {
+                      setNameError(null)
+                      setErrorMsg(null)
+                    }
+                  }}
+                  aria-invalid={Boolean(nameError)}
+                  aria-describedby={nameError ? 'name-error' : undefined}
                   placeholder="Contoh: Pak Budi / Bu Siti"
-                  className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
+                  className={`w-full px-4 py-2.5 text-xs border rounded-xl focus:outline-none focus:bg-white transition-all ${
+                    nameError
+                      ? 'bg-red-50/40 border-red-500 text-red-900 ring-2 ring-red-500/20 focus:border-red-500'
+                      : 'bg-stone-50 border-stone-300 focus:border-brand-500 text-stone-900'
+                  }`}
                 />
+                {nameError && (
+                  <p id="name-error" className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1">
+                    <i className="fa-solid fa-circle-exclamation text-[10px]" aria-hidden="true"></i>
+                    {nameError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -522,19 +772,26 @@ export const CheckoutPage: React.FC = () => {
                     aria-hidden="true"
                   ></i>
                   <input
+                    ref={phoneRef}
                     id="cust-phone"
                     type="tel"
                     required
                     inputMode="tel"
                     autoComplete="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value)
+                      if (phoneError) setPhoneError(null)
+                      if (errorMsg) setErrorMsg(null)
+                    }}
                     onBlur={handlePhoneBlur}
                     aria-invalid={Boolean(phoneError)}
                     aria-describedby={phoneError ? 'phone-error' : undefined}
                     placeholder="081234567890"
-                    className={`w-full pl-9 pr-4 py-2.5 text-xs bg-stone-50 border rounded-xl font-mono focus:outline-none focus:bg-white transition-all ${
-                      phoneError ? 'border-red-500 text-red-700' : 'border-stone-300 focus:border-brand-500 text-stone-900'
+                    className={`w-full pl-9 pr-4 py-2.5 text-xs border rounded-xl font-mono focus:outline-none focus:bg-white transition-all ${
+                      phoneError
+                        ? 'bg-red-50/40 border-red-500 text-red-700 ring-2 ring-red-500/20 focus:border-red-500'
+                        : 'bg-stone-50 border-stone-300 focus:border-brand-500 text-stone-900'
                     }`}
                   />
                 </div>
@@ -560,12 +817,21 @@ export const CheckoutPage: React.FC = () => {
                   <span className="font-bold text-stone-900">{formatRupiah(subtotal)}</span>
                 </div>
 
-                {isDelivery && (
+                {isDelivery ? (
                   <div className="flex justify-between">
                     <span>Biaya Pengiriman{quote ? ` (${quote.distance_km} km)` : ''}</span>
-                    <span className="font-bold text-stone-900">
-                      {quote ? (deliveryFee === 0 ? 'Gratis Kirim' : formatRupiah(deliveryFee)) : 'Belum dihitung'}
-                    </span>
+                    {isOutOfRange ? (
+                      <span className="font-bold text-red-600">Di luar jangkauan</span>
+                    ) : (
+                      <span className="font-bold text-stone-900">
+                        {quote ? (deliveryFee === 0 ? 'Gratis Kirim' : formatRupiah(deliveryFee)) : 'Belum dihitung'}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex justify-between">
+                    <span>Biaya Pengiriman (Ambil di Cabang)</span>
+                    <span className="font-bold text-emerald-600">Gratis</span>
                   </div>
                 )}
 
@@ -587,26 +853,36 @@ export const CheckoutPage: React.FC = () => {
                 <span className="text-brand-700 text-lg font-mono">{formatRupiah(grandTotal)}</span>
               </div>
 
-              {incompleteFields.length > 0 && !errorMsg && (
+              {incompleteFields.length > 0 && !errorMsg && !isOutOfRange && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
                   <p className="flex items-center gap-2">
                     <i className="fa-solid fa-circle-exclamation shrink-0" aria-hidden="true"></i>
-                    Lengkapi sebelum membayar:
+                    Lengkapi sebelum membayar (ketuk untuk mengisi):
                   </p>
-                  <ul className="mt-1.5 list-disc space-y-0.5 pl-6 font-medium">
-                    {incompleteFields.map((field) => <li key={field}>{field}</li>)}
+                  <ul className="mt-1.5 list-disc space-y-1 pl-6 font-medium">
+                    {incompleteFields.map((field) => (
+                      <li key={field.label}>
+                        <button
+                          type="button"
+                          onClick={field.focus}
+                          className="underline hover:text-amber-950 text-left font-semibold"
+                        >
+                          {field.label}
+                        </button>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
 
-              {(errorMsg || (blocker && incompleteFields.length === 0)) && (
+              {(errorMsg || isOutOfRange || (blocker && incompleteFields.length === 0)) && (
                 <div
                   className={`p-3 rounded-2xl text-xs font-semibold flex items-start gap-2 ${
-                    errorMsg
+                    errorMsg || isOutOfRange
                       ? 'bg-red-50 border border-red-200 text-red-700'
                       : 'bg-amber-50 border border-amber-200 text-amber-800'
                   }`}
-                  role={errorMsg ? 'alert' : undefined}
+                  role={errorMsg || isOutOfRange ? 'alert' : undefined}
                 >
                   <i
                     className="fa-solid fa-circle-exclamation mt-0.5 shrink-0"
@@ -633,10 +909,10 @@ export const CheckoutPage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitting || isStoreClosed}
-                aria-disabled={isSubmitting || isStoreClosed}
+                disabled={isSubmitting || isStoreClosed || isOutOfRange || Boolean(hardBlocker)}
+                aria-disabled={isSubmitting || isStoreClosed || isOutOfRange || Boolean(hardBlocker)}
                 className={`w-full py-4 font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm tracking-wide ${
-                  isStoreClosed
+                  isStoreClosed || isOutOfRange || Boolean(hardBlocker)
                     ? 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none border border-stone-300'
                     : 'bg-brand-600 hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white'
                 }`}
@@ -650,6 +926,11 @@ export const CheckoutPage: React.FC = () => {
                   <>
                     <i className="fa-solid fa-door-closed text-sm" aria-hidden="true"></i>
                     <span>Toko Sedang Tutup ({activeBranch?.name ?? 'Cabang'}) 😴</span>
+                  </>
+                ) : isOutOfRange ? (
+                  <>
+                    <i className="fa-solid fa-ban text-sm" aria-hidden="true"></i>
+                    <span>Lokasi Di Luar Jangkauan Pengiriman 🚫</span>
                   </>
                 ) : (
                   <>

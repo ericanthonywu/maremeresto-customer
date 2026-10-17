@@ -301,12 +301,26 @@ export const TrackingPage: React.FC = () => {
             {/* Delivery details */}
             <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-2 text-xs text-stone-600">
               <h4 className="font-serif font-bold text-sm text-stone-900 pb-1">
-                {order.order_type === 'pickup' ? 'Pengambilan' : 'Pengantaran'}
+                {order.order_type === 'pickup' ? 'Pengambilan di Cabang' : 'Pengantaran'}
               </h4>
               <div className="flex justify-between gap-4">
                 <span className="shrink-0">Outlet</span>
                 <span className="font-bold text-stone-900 text-right">{order.branch?.name ?? '-'}</span>
               </div>
+              {order.order_type === 'scheduled' && order.scheduled_at && (
+                <div className="flex justify-between gap-4">
+                  <span className="shrink-0">Jadwal Antar</span>
+                  <span className="font-bold text-amber-700 text-right">
+                    {new Date(order.scheduled_at).toLocaleString('id-ID', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              )}
               {order.order_type === 'pickup' ? (
                 <div className="flex justify-between gap-4">
                   <span className="shrink-0">Ambil di</span>
@@ -422,7 +436,16 @@ export const TrackingPage: React.FC = () => {
                 {/* Bottom row with action / skeleton button */}
                 <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between">
                   <span className="text-[11px] text-stone-400 font-medium">
-                    {o.order_type === 'pickup' ? 'Ambil di outlet' : 'Pengantaran kurir'}
+                    {o.order_type === 'pickup'
+                      ? 'Ambil di outlet'
+                      : o.order_type === 'scheduled' && o.scheduled_at
+                        ? `Jadwal: ${new Date(o.scheduled_at).toLocaleString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}`
+                        : 'Pengantaran kurir'}
                   </span>
                   {navigatingOrderId === o.id ? (
                     <div className="px-3 py-1 bg-brand-100 text-brand-800 rounded-xl text-xs font-bold flex items-center gap-1.5 animate-pulse">

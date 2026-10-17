@@ -11,7 +11,10 @@ export const StickyCartSidebar: React.FC = () => {
 
   // Fees are only shown once the server has priced them for this location.
   const quote = selectedBranch ? quoteFor(selectedBranch.id) : null
-  const knownTotal = quote ? subtotal + quote.delivery_fee + quote.service_fee : null
+  const isOutOfRange = Boolean(quote && !quote.within_radius)
+  const knownTotal = quote
+    ? subtotal + (quote.within_radius ? quote.delivery_fee : 0) + quote.service_fee
+    : null
 
   return (
     <aside className="hidden lg:block w-80 xl:w-96 shrink-0">
@@ -94,9 +97,13 @@ export const StickyCartSidebar: React.FC = () => {
               <>
                 <div className="flex justify-between text-stone-600">
                   <span>Ongkir ({quote.distance_km} km)</span>
-                  <span className="font-bold text-stone-900">
-                    {quote.delivery_fee === 0 ? 'Gratis' : formatRupiah(quote.delivery_fee)}
-                  </span>
+                  {isOutOfRange ? (
+                    <span className="font-bold text-red-600">Di luar jangkauan</span>
+                  ) : (
+                    <span className="font-bold text-stone-900">
+                      {quote.delivery_fee === 0 ? 'Gratis' : formatRupiah(quote.delivery_fee)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex justify-between text-stone-600">
                   <span>Biaya layanan</span>

@@ -18,6 +18,8 @@ export interface Branch {
   today_hours?: string
   whatsapp_number?: string
   halal_certificate_id?: string
+  service_fee?: number
+  max_delivery_radius_km?: number
 }
 
 export interface Category {
@@ -141,6 +143,7 @@ export interface BranchDeliveryQuote {
   eta_minutes: number
   max_radius_km: number
   within_radius: boolean
+  within_solo?: boolean
   free_delivery_from: number
   is_open_now: boolean
   is_nearest: boolean
@@ -149,6 +152,7 @@ export interface BranchDeliveryQuote {
 export interface DeliveryQuote {
   quotes: BranchDeliveryQuote[]
   nearest_branch_id?: string
+  within_solo?: boolean
 }
 
 export interface GeocodeResult {

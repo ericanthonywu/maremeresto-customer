@@ -34,6 +34,31 @@ const HEADLINE: Partial<Record<Order['status'], string>> = {
   rejected: 'Pesanan ditolak outlet',
 }
 
+function headlineFor(status: Order['status'], orderType: Order['order_type']): string {
+  if (orderType === 'pickup') {
+    switch (status) {
+      case 'pending':
+        return 'Menunggu konfirmasi outlet'
+      case 'accepted':
+      case 'preparing':
+      case 'ready':
+      case 'on_the_way':
+        return 'Pesanan disiapkan di outlet'
+      case 'picked_up':
+      case 'delivered':
+      case 'completed':
+        return 'Pesanan sudah diambil'
+      case 'cancelled':
+        return 'Pesanan dibatalkan'
+      case 'rejected':
+        return 'Pesanan ditolak outlet'
+      default:
+        return status
+    }
+  }
+  return HEADLINE[status] ?? status
+}
+
 export const RouteProgressBanner: React.FC<RouteProgressBannerProps> = ({
   status,
   orderType,
@@ -73,7 +98,7 @@ export const RouteProgressBanner: React.FC<RouteProgressBannerProps> = ({
               isStopped ? 'text-red-400' : 'text-emerald-400'
             }`}
           >
-            {HEADLINE[status] ?? status}
+            {headlineFor(status, orderType)}
           </span>
         </div>
 

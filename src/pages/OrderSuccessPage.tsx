@@ -255,10 +255,30 @@ export const OrderSuccessPage: React.FC = () => {
                     {order.order_type === 'delivery'
                       ? 'Diantar kurir'
                       : order.order_type === 'pickup'
-                        ? 'Ambil sendiri'
+                        ? 'Ambil di cabang'
                         : 'Dijadwalkan'}
                   </span>
                 </div>
+                {order.order_type === 'scheduled' && order.scheduled_at && (
+                  <div className="flex justify-between gap-3">
+                    <span>Jadwal Antar</span>
+                    <span className="font-bold text-amber-700 text-right">
+                      {new Date(order.scheduled_at).toLocaleString('id-ID', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                )}
+                {order.order_type === 'pickup' && order.branch?.address && (
+                  <div className="flex justify-between gap-3">
+                    <span>Lokasi Ambil</span>
+                    <span className="font-medium text-stone-800 text-right">{order.branch.address}</span>
+                  </div>
+                )}
                 <div className="flex justify-between gap-3">
                   <span>Pemesan</span>
                   <span className="font-bold text-stone-900 text-right">{order.customer_name}</span>
