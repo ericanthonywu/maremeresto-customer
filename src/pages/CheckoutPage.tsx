@@ -470,15 +470,28 @@ export const CheckoutPage: React.FC = () => {
                 </div>
 
                 {location ? (
-                  <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 flex items-start gap-2.5">
-                    <i className="fa-solid fa-location-dot text-brand-600 mt-0.5 shrink-0" aria-hidden="true"></i>
-                    <div className="min-w-0 text-xs">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setLocationOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setLocationOpen(true)
+                      }
+                    }}
+                    className="p-3 rounded-2xl bg-stone-50 border border-stone-200 flex items-start gap-2.5 cursor-pointer hover:bg-stone-100 hover:border-brand-300 transition-colors group"
+                    title="Klik untuk mengubah alamat pengiriman"
+                  >
+                    <i className="fa-solid fa-location-dot text-brand-600 mt-0.5 shrink-0 group-hover:scale-110 transition-transform" aria-hidden="true"></i>
+                    <div className="min-w-0 flex-1 text-xs">
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-stone-400 group-hover:text-brand-600 transition-colors">
                         Lokasi Pengiriman
                         {location.source === 'gps' ? ' · Lokasi Otomatis' : ' · Hasil Pencarian'}
                       </span>
                       <span className="block text-stone-800 font-medium break-words">{location.address}</span>
                     </div>
+                    <i className="fa-solid fa-chevron-right text-stone-400 self-center text-[10px] shrink-0 group-hover:text-brand-600 transition-colors" aria-hidden="true"></i>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
