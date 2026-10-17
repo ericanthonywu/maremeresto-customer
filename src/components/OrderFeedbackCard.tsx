@@ -451,6 +451,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     return (
       <section
         ref={cardRef}
+        id="rating-section"
         className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-5"
       >
         {/* Header */}
@@ -547,18 +548,7 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
             />
           </div>
 
-          {/* Reminder visual bahwa setelah rating harus klik submit */}
-          {hasAnyItemRating && (
-            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 text-xs font-semibold shadow-xs">
-              <i className="fa-solid fa-circle-check text-amber-600 text-sm shrink-0" aria-hidden="true" />
-              <div className="flex-1">
-                <span className="font-bold block text-stone-900">Rating menu sudah Anda pilih!</span>
-                <span className="text-[11px] text-stone-600">
-                  Klik tombol <strong>&quot;{isEligibleForAppRating ? 'Kirim & Lanjut ke Rating Aplikasi' : 'Kirim Penilaian Menu'}&quot;</strong> di bawah untuk menyimpan.
-                </span>
-              </div>
-            </div>
-          )}
+
 
           {/* Submit Button */}
           <div className="space-y-2 pt-1">

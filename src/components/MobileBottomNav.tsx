@@ -1,12 +1,38 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import { customerApi, isLoggedIn } from '../api/client'
 
 export const MobileBottomNav: React.FC = () => {
   const location = useLocation()
   const { totalCount } = useCart()
+  const [orderBadgeCount, setOrderBadgeCount] = useState<number | undefined>(undefined)
 
-  const tabs: Array<{ label: string; path: string; icon: string; badge?: number }> = [
+  useEffect(() => {
+    let cancelled = false
+    if (!isLoggedIn()) {
+      setOrderBadgeCount(undefined)
+      return
+    }
+    customerApi
+      .getMyOrders(10)
+      .then(({ orders }) => {
+        if (cancelled) return
+        const actionable = orders.filter((o) =>
+          ['pending', 'accepted', 'preparing', 'ready', 'on_the_way'].includes(o.status)
+        )
+        setOrderBadgeCount(actionable.length > 0 ? actionable.length : undefined)
+      })
+      .catch(() => {
+        if (!cancelled) setOrderBadgeCount(undefined)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [location.pathname])
+
+  const tabs: Array<{ label: string; path: string; icon: string; badge?: number; badgeColor?: string }> = [
     {
       label: 'Cabang',
       path: '/branches',
@@ -24,9 +50,11 @@ export const MobileBottomNav: React.FC = () => {
       badge: totalCount > 0 ? totalCount : undefined,
     },
     {
-      label: 'Lacak',
+      label: 'Pesanan',
       path: '/tracking',
-      icon: 'fa-solid fa-location-crosshairs',
+      icon: 'fa-solid fa-receipt',
+      badge: orderBadgeCount,
+      badgeColor: 'bg-amber-500',
     },
   ]
 
@@ -47,7 +75,7 @@ export const MobileBottomNav: React.FC = () => {
               <div className="relative mb-0.5">
                 <i className={`${tab.icon} text-lg`} aria-hidden="true"></i>
                 {tab.badge !== undefined && (
-                  <span className="absolute -top-1 -right-2 bg-brand-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow">
+                  <span className={`absolute -top-1 -right-2 ${tab.badgeColor ?? 'bg-brand-600'} text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow`}>
                     {tab.badge}
                   </span>
                 )}

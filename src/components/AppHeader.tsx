@@ -7,10 +7,6 @@ import { customerApi } from '../api/client'
 import type { Order } from '../types'
 import { CustomerProfileModal } from './CustomerProfileModal'
 
-/** Statuses that mean an order is still worth surfacing in the header. */
-const ACTIVE_STATUSES: Array<Order['status']> = [
-  'pending', 'accepted', 'completed',
-]
 
 export const AppHeader: React.FC = () => {
   const { selectedBranch } = useBranch()
@@ -18,9 +14,12 @@ export const AppHeader: React.FC = () => {
   const { user, isLoggedIn, openAuthModal, logout } = useCustomerAuth()
   const routerLocation = useRouterLocation()
 
-  // The "active order" pill is only rendered when the customer really has one.
-  // It used to be hardcoded to "#0042" and shown to every visitor.
-  const [activeOrder, setActiveOrder] = useState<Order | null>(null)
+  const [ordersSummary, setOrdersSummary] = useState<{
+    pending: Order[]
+    active: Order[]
+    total: number
+  }>({ pending: [], active: [], total: 0 })
+
   const [accountOpen, setAccountOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
@@ -34,27 +33,48 @@ export const AppHeader: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      setActiveOrder(null)
-      return
+    let cancelled = false
+    const fetchOrders = async () => {
+      try {
+        let orders: Order[] = []
+        if (isLoggedIn) {
+          const res = await customerApi.getMyOrders(15)
+          orders = res.orders || []
+        } else {
+          // Check local storage for recent order IDs for guest
+          try {
+            const raw = localStorage.getItem('mareme_recent_orders')
+            if (raw) {
+              const ids: string[] = JSON.parse(raw).slice(0, 5)
+              const results = await Promise.allSettled(ids.map((id) => customerApi.getOrder(id)))
+              orders = results
+                .filter((r): r is PromiseFulfilledResult<Order> => r.status === 'fulfilled')
+                .map((r) => r.value)
+            }
+          } catch {}
+        }
+
+        if (cancelled) return
+
+        const pending = orders.filter((o) => o.status === 'pending')
+        const active = orders.filter((o) =>
+          ['accepted', 'preparing', 'ready', 'on_the_way', 'picked_up'].includes(o.status)
+        )
+        setOrdersSummary({ pending, active, total: orders.length })
+      } catch {
+        if (!cancelled) setOrdersSummary({ pending: [], active: [], total: 0 })
+      }
     }
 
-    let cancelled = false
-    customerApi
-      .getMyOrders(5)
-      .then(({ orders }) => {
-        if (cancelled) return
-        setActiveOrder(orders.find((o) => ACTIVE_STATUSES.includes(o.status)) ?? null)
-      })
-      .catch(() => {
-        if (!cancelled) setActiveOrder(null)
-      })
-
+    void fetchOrders()
     return () => {
       cancelled = true
     }
-    // Re-check on navigation so a newly placed order appears without a reload.
+    // Re-check on navigation so newly placed/updated orders reflect without reload.
   }, [routerLocation.pathname, isLoggedIn])
+
+  const pendingCount = ordersSummary.pending.length
+  const activeCount = ordersSummary.active.length
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-stone-200/80 shadow-sm">
@@ -86,21 +106,55 @@ export const AppHeader: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {activeOrder && (
+          {/* Conditional Alert Pill: Prioritise pending payment, then active delivery */}
+          {pendingCount > 0 ? (
             <Link
-              to={`/tracking/${activeOrder.id}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold shadow-sm transition-all"
+              to="/tracking?tab=pending"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition-all animate-pulse"
+              title="Ada pesanan menunggu pembayaran"
+            >
+              <i className="fa-solid fa-credit-card text-xs" aria-hidden="true" />
+              <span>{pendingCount} Perlu Dibayar 💳</span>
+            </Link>
+          ) : activeCount > 0 ? (
+            <Link
+              to={`/tracking/${ordersSummary.active[0].id}`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold shadow-sm transition-all"
+              title="Pesanan aktif sedang diproses"
             >
               <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="hidden sm:inline">Pesanan Sedang Diproses 🛵</span>
-              <span className="font-mono text-brand-700">
-                {activeOrder.order_number.split('-').pop()}
+              <span className="hidden sm:inline">Pesanan Aktif 🛵</span>
+              <span className="font-mono text-emerald-700">
+                {ordersSummary.active[0].order_number.split('-').pop()}
               </span>
             </Link>
-          )}
+          ) : null}
+
+          {/* Dedicated Web Entry Point: Pesanan Saya */}
+          <Link
+            to="/tracking"
+            title="Riwayat & Lacak Pesanan"
+            aria-label="Pesanan Saya"
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+              routerLocation.pathname.startsWith('/tracking')
+                ? 'bg-brand-50 border-brand-300 text-brand-700'
+                : 'bg-stone-100 hover:bg-stone-200 border-stone-200 text-stone-700'
+            }`}
+          >
+            <i className="fa-solid fa-receipt text-xs text-brand-600" aria-hidden="true"></i>
+            <span className="hidden md:inline">Pesanan Saya</span>
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[1.2rem] h-[1.2rem] px-1 text-[10px] font-black text-white bg-amber-500 rounded-full">
+                {pendingCount}
+              </span>
+            )}
+            {activeCount > 0 && pendingCount === 0 && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            )}
+          </Link>
 
           <Link
             to="/cart"
@@ -140,6 +194,26 @@ export const AppHeader: React.FC = () => {
                     <span className="block text-xs font-bold text-stone-900 truncate">{user.name}</span>
                     <span className="block text-[10px] text-stone-500 font-mono truncate">{user.phone}</span>
                   </div>
+                  <Link
+                    to="/tracking"
+                    role="menuitem"
+                    onClick={() => setAccountOpen(false)}
+                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-stone-700 hover:bg-brand-50 hover:text-brand-700 flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-receipt w-4 text-center text-brand-600" aria-hidden="true"></i>
+                      <span>Pesanan Saya</span>
+                    </div>
+                    {pendingCount > 0 ? (
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">
+                        {pendingCount} belum bayar
+                      </span>
+                    ) : activeCount > 0 ? (
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500 text-white rounded-full">
+                        {activeCount} aktif
+                      </span>
+                    ) : null}
+                  </Link>
                   <button
                     type="button"
                     role="menuitem"

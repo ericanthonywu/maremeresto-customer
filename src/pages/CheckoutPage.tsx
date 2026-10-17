@@ -290,6 +290,14 @@ export const CheckoutPage: React.FC = () => {
           })),
         })
 
+        // Persist order id in local storage so customer can always track even as guest
+        try {
+          const raw = localStorage.getItem('mareme_recent_orders')
+          const existing = raw ? JSON.parse(raw) : []
+          const updated = [createdOrder.id, ...existing.filter((id: string) => id !== createdOrder.id)].slice(0, 30)
+          localStorage.setItem('mareme_recent_orders', JSON.stringify(updated))
+        } catch {}
+
         // 3. Open a Midtrans Snap session.
         setSubmitStage('Menyiapkan pembayaran...')
         const idempotencyKey = `pay-${createdOrder.id}`

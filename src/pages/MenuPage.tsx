@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBranch } from '../context/BranchContext'
 import { useCart } from '../context/CartContext'
-import { customerApi, errorMessage } from '../api/client'
-import type { Category, MenuItem } from '../types'
+import { customerApi, errorMessage, isLoggedIn } from '../api/client'
+import type { Category, MenuItem, Order } from '../types'
 import { CategoryTabs } from '../components/CategoryTabs'
 import { MenuItemCard } from '../components/MenuItemCard'
 import { AddToCartModal } from '../components/AddToCartModal'
@@ -26,6 +26,51 @@ export const MenuPage: React.FC = () => {
   const [confirmItem, setConfirmItem] = useState<MenuItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [unratedOrder, setUnratedOrder] = useState<Order | null>(null)
+  const [ratingAlertDismissed, setRatingAlertDismissed] = useState(() => {
+    return sessionStorage.getItem('mareme_menu_rating_dismissed') === 'true'
+  })
+
+  useEffect(() => {
+    if (ratingAlertDismissed) return
+
+    let cancelled = false
+    const checkUnrated = async () => {
+      try {
+        let orders: Order[] = []
+        if (isLoggedIn()) {
+          const res = await customerApi.getMyOrders(5)
+          orders = res.orders || []
+        } else {
+          try {
+            const raw = localStorage.getItem('mareme_recent_orders')
+            if (raw) {
+              const ids: string[] = JSON.parse(raw).slice(0, 3)
+              const results = await Promise.allSettled(ids.map((id) => customerApi.getOrder(id)))
+              orders = results
+                .filter((r): r is PromiseFulfilledResult<Order> => r.status === 'fulfilled')
+                .map((r) => r.value)
+            }
+          } catch {}
+        }
+
+        if (cancelled) return
+        const found = orders.find((o) => o.status === 'completed' && !o.feedback)
+        if (found) setUnratedOrder(found)
+      } catch {}
+    }
+
+    void checkUnrated()
+    return () => {
+      cancelled = true
+    }
+  }, [ratingAlertDismissed])
+
+  const dismissRatingAlert = () => {
+    setRatingAlertDismissed(true)
+    sessionStorage.setItem('mareme_menu_rating_dismissed', 'true')
+  }
 
   // Honour ?branch= in the URL, e.g. from a shared link.
   useEffect(() => {
@@ -198,6 +243,54 @@ export const MenuPage: React.FC = () => {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        {/* Pengingat Rating Pesanan: Ramah, tidak memaksa & tidak blocking */}
+        {unratedOrder && !ratingAlertDismissed && (
+          <div className="mb-6 rounded-3xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-300/80 p-4 sm:p-5 shadow-sm animate-fadeIn">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shrink-0 shadow-sm">
+                <i className="fa-solid fa-star" aria-hidden="true" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="font-serif font-bold text-sm sm:text-base text-stone-900">
+                    Sebelum Lanjut ke Halaman Lain, Jangan Lupa Rating Ya! ⭐
+                  </h4>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                    #{unratedOrder.order_number}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                  Bagaimana rasa hidangan Maremè kamu tadi? Sebelum lanjut memilih menu atau ke halaman lain, yuk luangkan 10 detik untuk beri rating singkat. Masukanmu sangat berarti bagi barista &amp; koki kami 😊 <span className="text-stone-400 font-medium">(Santai saja, tidak wajib kok!)</span>
+                </p>
+                <div className="flex flex-wrap items-center gap-2.5 mt-3 pt-1">
+                  <Link
+                    to={`/tracking/${unratedOrder.id}#rating-section`}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+                  >
+                    <i className="fa-solid fa-star text-amber-300 text-xs" aria-hidden="true" />
+                    <span>Beri Rating Sekarang</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={dismissRatingAlert}
+                    className="px-3.5 py-2 text-stone-500 hover:text-stone-800 text-xs font-semibold rounded-xl hover:bg-stone-100 transition-colors"
+                  >
+                    Nanti Saja
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={dismissRatingAlert}
+                className="text-stone-400 hover:text-stone-600 p-1.5 rounded-lg hover:bg-stone-100 shrink-0 transition-colors"
+                aria-label="Tutup pengingat rating"
+              >
+                <i className="fa-solid fa-xmark text-sm" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-8 items-start">
           <div className="flex-1 min-w-0">
             {isBusy ? (
