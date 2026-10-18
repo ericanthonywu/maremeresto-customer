@@ -44,6 +44,9 @@ export interface MenuItem {
   tag?: string
   is_available: boolean
   sort_order: number
+  is_best_seller?: boolean
+  branch_name?: string
+  branch_slug?: string
 }
 
 export interface CartItem {

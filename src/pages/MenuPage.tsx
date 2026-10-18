@@ -133,19 +133,19 @@ export const MenuPage: React.FC = () => {
   const isBusy = (loading && Boolean(activeSlug)) || branchesLoading
 
   const pageTitle = selectedBranch
-    ? `Menu Makanan Hangat & Murah — ${selectedBranch.name} Solo | Mareme Group`
-    : 'Menu Kuliner Makanan Hangat & Murah Surakarta Solo'
+    ? `Daftar Menu — ${selectedBranch.name} Solo | Mareme Group`
+    : 'Daftar Menu Kuliner Favorit Surakarta Solo — Mareme Group'
 
   const pageDescription = selectedBranch
-    ? `Pesan online menu makanan hangat murah di ${selectedBranch.name} Surakarta / Solo. Nikmati soto, bakmi, warmindo, & kopi hangat terjangkau.`
-    : 'Pilih dan pesan menu kuliner makanan hangat dan murah di Surakarta / Solo dari Mareme Group. Soto hangat, bakmi, warmindo & kopi terjangkau.'
+    ? `Pesan online menu favorit di ${selectedBranch.name} Surakarta / Solo dari Mareme Group. Nikmati aneka hidangan hangat lezat.`
+    : 'Pilih dan pesan menu kuliner hangat favorit di Surakarta / Solo dari Mareme Group.'
 
   return (
     <div className="min-h-screen bg-brand-50/40 pb-28 lg:pb-16 transition-colors duration-300">
       <SEO
         title={pageTitle}
         description={pageDescription}
-        keywords="menu makanan murah solo, menu makanan hangat surakarta, soto hangat solo, bakmi murah solo, warmindo solo, kopi hangat solo, mareme group menu"
+        keywords="menu mareme group, kuliner solo, soto solo, bakmi solo, kopi solo, makanan solo"
       />
 
       {toastMessage && (

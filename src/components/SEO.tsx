@@ -10,11 +10,11 @@ export interface SEOProps {
   jsonLd?: object
 }
 
-const DEFAULT_TITLE = 'Kuliner & Makanan Hangat Murah Surakarta Solo — Mareme Group'
+const DEFAULT_TITLE = 'Mareme Group Solo — Kuliner & Menu Pilihan Favorit'
 const DEFAULT_DESCRIPTION =
-  'Cari makanan hangat dan murah di Surakarta / Solo? Mareme Group menyajikan kuliner hangat, lezat, dan terjangkau seperti soto, bakmi, warmindo, wedangan, & kopi hangat dengan pesan online & pengantaran cepat di Solo.'
+  'Pesan kuliner hangat dan menu best seller favorit khas Solo dari Mareme Group. Pengantaran cepat sampai ke rumah.'
 const DEFAULT_KEYWORDS =
-  'makanan murah surakarta, makanan hangat solo, kuliner murah solo, tempat makan murah solo, warmindo surakarta, soto hangat solo, wedangan solo, kuliner surakarta terjangkau, mareme group solo, pesan makanan online solo'
+  'mareme group, kuliner solo, makanan hangat solo, soto solo, bakmi solo, kopi solo, pesan online solo'
 
 export const SEO: React.FC<SEOProps> = ({
   title = DEFAULT_TITLE,

@@ -216,6 +216,13 @@ export const customerApi = {
     return res.data.data ?? []
   },
 
+  getBestSellers: async (branchSlugOrId?: string): Promise<MenuItem[]> => {
+    const res = await api.get('/menu/best-sellers', {
+      params: branchSlugOrId ? { branch: branchSlugOrId } : undefined,
+    })
+    return res.data.data ?? []
+  },
+
   // ---- Location & delivery pricing -------------------------------------
   /**
    * Prices delivery from every outlet to a coordinate. The backend is the only
