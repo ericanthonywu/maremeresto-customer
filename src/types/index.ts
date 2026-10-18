@@ -167,7 +167,7 @@ export interface GeocodeResult {
  * How the customer's delivery point was established. The UI must be able to
  * say so, because a guessed location silently mispriced delivery before.
  */
-export type LocationSource = 'gps' | 'search' | 'manual'
+export type LocationSource = 'gps' | 'search' | 'manual' | 'pin'
 
 export interface UserLocation {
   lat: number

@@ -495,7 +495,11 @@ export const CheckoutPage: React.FC = () => {
                     <div className="min-w-0 flex-1 text-xs">
                       <span className="block text-[10px] font-bold uppercase tracking-wider text-stone-400 group-hover:text-brand-600 transition-colors">
                         Lokasi Pengiriman
-                        {location.source === 'gps' ? ' · Lokasi Otomatis' : ' · Hasil Pencarian'}
+                        {location.source === 'gps'
+                          ? ' · Lokasi Otomatis'
+                          : location.source === 'pin'
+                            ? ' · Titik Pin Peta'
+                            : ' · Hasil Pencarian'}
                       </span>
                       <span className="block text-stone-800 font-medium break-words">{location.address}</span>
                     </div>
