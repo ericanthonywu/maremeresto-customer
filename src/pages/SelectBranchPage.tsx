@@ -86,14 +86,14 @@ export const SelectBranchPage: React.FC = () => {
                   ? 'Mencari lokasi Anda... ⏳'
                   : location
                     ? location.address
-                    : 'Klik di sini untuk pilih alamat pengiriman 📍'}
+                    : 'Pilih alamat pengiriman di Kota Surakarta 📍'}
               </span>
               <i className="fa-solid fa-chevron-down text-[10px] text-stone-400 shrink-0" aria-hidden="true"></i>
             </button>
 
             {!location && !detecting && (
               <p className="text-[11px] text-amber-200/80 mt-2">
-                Biaya pengiriman akan muncul setelah Anda memilih atau memasukkan alamat.
+                Biaya pengiriman akan muncul setelah Anda memilih alamat (khusus area Kota Surakarta).
               </p>
             )}
           </div>

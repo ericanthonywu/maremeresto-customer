@@ -237,7 +237,7 @@ export const customerApi = {
   },
 
   searchAddress: async (query: string, signal?: AbortSignal): Promise<GeocodeResult[]> => {
-    const res = await api.get('/geocode/search', { params: { q: query }, signal })
+    const res = await api.get('/geocode/search', { params: { q: query, scope: 'surakarta' }, signal })
     return res.data.data ?? []
   },
 

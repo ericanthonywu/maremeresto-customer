@@ -517,7 +517,7 @@ export const CheckoutPage: React.FC = () => {
                       <span className="text-xs">
                         <span className="block font-bold text-stone-900">Pilih Alamat Pengiriman Anda</span>
                         <span className="block text-stone-500 text-[11px]">
-                          Biaya pengiriman dihitung berdasarkan jarak cabang ke alamat Anda
+                          Biaya pengiriman dihitung berdasarkan jarak cabang ke alamat Anda (khusus Kota Surakarta)
                         </span>
                       </span>
                     </button>
@@ -968,7 +968,7 @@ export const CheckoutPage: React.FC = () => {
       <LocationModal
         isOpen={locationOpen}
         onClose={() => setLocationOpen(false)}
-        reason="Ongkos kirim dihitung dari jarak sebenarnya antara alamat ini dan outlet."
+        reason="Pengantaran khusus area Kota Surakarta. Ongkos kirim dihitung otomatis dari jarak sebenarnya ke cabang terdekat."
       />
     </div>
   )

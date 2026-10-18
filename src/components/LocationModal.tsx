@@ -126,7 +126,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
   if (!isOpen) return null
 
-  const popularAreas = ['Manahan', 'Slamet Riyadi', 'Solo Baru', 'Banjarsari', 'Jebres', 'Kartasura']
+  const popularAreas = ['Manahan', 'Slamet Riyadi', 'Laweyan', 'Banjarsari', 'Jebres', 'Pasar Kliwon']
 
   return (
     <div
@@ -147,11 +147,16 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 id="location-modal-title" className="font-serif font-bold text-lg text-stone-900">
-              Pilih Alamat Pengiriman Rumah 📍
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 id="location-modal-title" className="font-serif font-bold text-lg text-stone-900">
+                Pilih Alamat Pengiriman Rumah 📍
+              </h3>
+              <span className="text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-full shrink-0">
+                Kota Surakarta
+              </span>
+            </div>
             <p className="text-[11px] text-stone-500 mt-0.5">
-              {reason ?? 'Biaya pengiriman dihitung otomatis berdasarkan jarak rumah Bapak/Ibu ke cabang terdekat 😊'}
+              {reason ?? 'Biaya pengiriman dihitung otomatis berdasarkan jarak rumah Bapak/Ibu ke cabang terdekat di Kota Surakarta 😊'}
             </p>
           </div>
           <button
@@ -252,8 +257,13 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
         {/* Address search backed by a real geocoder. */}
         <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-[11px] text-brand-800 bg-brand-50/80 border border-brand-200/90 rounded-xl px-3 py-2">
+            <i className="fa-solid fa-location-dot text-brand-600 text-xs shrink-0" aria-hidden="true"></i>
+            <span>Pencarian alamat pengiriman khusus untuk area <strong>Kota Surakarta (Solo)</strong>.</span>
+          </div>
+
           <label htmlFor="address-search" className="sr-only">
-            Cari alamat
+            Cari alamat di Kota Surakarta
           </label>
           <div className="relative">
             <i
@@ -266,7 +276,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="mis. Jl. Slamet Riyadi, Stadion Manahan, Solo Baru"
+              placeholder="mis. Jl. Slamet Riyadi, Stadion Manahan, Laweyan"
               autoComplete="off"
               className="w-full pl-9 pr-9 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
             />
@@ -280,7 +290,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
           {/* Quick area suggestions */}
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-            <span className="text-[10px] text-stone-400 font-medium">Saran area:</span>
+            <span className="text-[10px] text-stone-400 font-medium">Saran area (Kota Solo):</span>
             {popularAreas.map((area) => (
               <button
                 key={area}
@@ -324,7 +334,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
           {hasSearched && !searching && results.length === 0 && !searchError && (
             <p className="text-[11px] text-stone-500 px-1">
-              Alamat tidak ditemukan. Coba nama jalan atau patokan yang lebih umum.
+              Alamat tidak ditemukan di Kota Surakarta. Pastikan alamat atau patokan berada dalam wilayah Kota Surakarta (Solo).
             </p>
           )}
         </div>
