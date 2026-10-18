@@ -126,7 +126,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
 
   if (!isOpen) return null
 
-  const popularAreas = ['Manahan', 'Slamet Riyadi', 'Laweyan', 'Banjarsari', 'Jebres', 'Pasar Kliwon']
+  const popularAreas = ['Manahan', 'Slamet Riyadi', 'Dr. Radjiman', 'Laweyan', 'Banjarsari', 'Jebres']
 
   return (
     <div
@@ -276,7 +276,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, r
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="mis. Jl. Slamet Riyadi, Stadion Manahan, Laweyan"
+              placeholder="mis. Jl. Slamet Riyadi, Dr. Radjiman, Manahan"
               autoComplete="off"
               className="w-full pl-9 pr-9 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-brand-500 focus:bg-white transition-all"
             />
