@@ -13,27 +13,68 @@ const CANCEL_WINDOW_MS = 5 * 60 * 1000
 
 /** Statuses where nothing further will change, so polling can stop. */
 const TERMINAL_STATUSES: Array<Order['status']> = ['completed', 'cancelled', 'rejected', 'delivered']
+const BITESHIP_FINAL_STATUSES = ['delivered', 'cancelled', 'rejected', 'courier_not_found', 'returned', 'disposed']
 
 function biteshipStatusInfo(status?: string): { label: string; color: string } {
-  switch ((status || '').toLowerCase()) {
+  switch ((status || '').toLowerCase().trim()) {
+    case 'placed':
+      return { label: 'Menunggu konfirmasi kurir', color: 'bg-amber-100 text-amber-900 border-amber-300' }
     case 'confirmed':
       return { label: 'Kurir dipanggil, mencari driver...', color: 'bg-amber-100 text-amber-900 border-amber-300' }
+    case 'scheduled':
+      return { label: 'Pengiriman dijadwalkan', color: 'bg-amber-100 text-amber-900 border-amber-300' }
     case 'allocated':
       return { label: 'Driver ditemukan', color: 'bg-blue-100 text-blue-900 border-blue-300' }
     case 'picking_up':
       return { label: 'Driver menuju outlet', color: 'bg-indigo-100 text-indigo-900 border-indigo-300' }
     case 'picked':
       return { label: 'Pesanan diambil driver', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
+    case 'in_transit':
+      return { label: 'Pesanan dalam perjalanan', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
     case 'dropping_off':
       return { label: 'Driver menuju lokasi Anda', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
     case 'delivered':
       return { label: 'Pesanan sudah tiba', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
+    case 'on_hold':
+      return { label: 'Pengiriman ditahan sementara', color: 'bg-amber-100 text-amber-900 border-amber-300' }
+    case 'return_in_transit':
+      return { label: 'Pesanan dikembalikan ke outlet', color: 'bg-orange-100 text-orange-900 border-orange-300' }
+    case 'returned':
+      return { label: 'Pesanan kembali ke outlet', color: 'bg-red-100 text-red-800 border-red-200' }
+    case 'disposed':
+      return { label: 'Pengiriman dihentikan', color: 'bg-red-100 text-red-800 border-red-200' }
     case 'cancelled':
     case 'rejected':
     case 'courier_not_found':
       return { label: 'Menunggu penjadwalan ulang kurir', color: 'bg-red-100 text-red-800 border-red-200' }
     default:
-      return { label: status || 'Menunggu kurir', color: 'bg-stone-100 text-stone-700 border-stone-200' }
+      return { label: 'Memproses pengiriman', color: 'bg-stone-100 text-stone-700 border-stone-200' }
+  }
+}
+
+function biteshipFallbackMessage(status?: string, courierName?: string): string {
+  const courier = courierName || 'kurir instan'
+  switch ((status || '').toLowerCase().trim()) {
+    case 'allocated':
+    case 'picking_up':
+      return `Driver ${courier} sudah ditugaskan dan sedang menuju outlet.`
+    case 'picked':
+    case 'in_transit':
+    case 'dropping_off':
+      return `Pesanan sedang dalam pengantaran oleh ${courier}.`
+    case 'delivered':
+      return 'Pesanan telah tiba di alamat tujuan.'
+    case 'on_hold':
+      return 'Pengiriman sedang ditahan sementara oleh pihak kurir. Silakan hubungi admin outlet bila membutuhkan bantuan.'
+    case 'cancelled':
+    case 'rejected':
+    case 'courier_not_found':
+    case 'return_in_transit':
+    case 'returned':
+    case 'disposed':
+      return 'Outlet sedang menjadwalkan ulang kurir pengiriman untuk pesanan Anda.'
+    default:
+      return `Sedang mencarikan driver ${courier}. Nama dan nomor driver akan muncul otomatis di sini.`
   }
 }
 
@@ -181,9 +222,13 @@ export const TrackingPage: React.FC = () => {
     })
   }, [orderId, subscribeToOrder])
 
-  // Periodic polling fallback
+  // Periodic polling fallback (keep polling while Biteship courier is still active)
   useEffect(() => {
-    if (!orderId || !order || TERMINAL_STATUSES.includes(order.status)) return
+    if (!orderId || !order) return
+    const hasActiveBiteship =
+      Boolean(order.biteship_order_id) &&
+      !BITESHIP_FINAL_STATUSES.includes((order.biteship_status || '').toLowerCase())
+    if (TERMINAL_STATUSES.includes(order.status) && !hasActiveBiteship) return
 
     const timer = window.setInterval(() => void loadOrder(orderId), 45000)
     return () => window.clearInterval(timer)
@@ -492,6 +537,7 @@ export const TrackingPage: React.FC = () => {
             <RouteProgressBanner
               status={order.status}
               orderType={order.order_type}
+              biteshipStatus={order.biteship_status}
               originName={order.branch?.name}
               destination={order.delivery_address}
               distanceKm={order.delivery_distance_km}
@@ -558,7 +604,7 @@ export const TrackingPage: React.FC = () => {
                   </div>
                 ) : order.biteship_order_id ? (
                   <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-2xl p-3">
-                    Sedang mencarikan driver {order.courier_name || 'kurir instan'}. Nama dan nomor driver akan muncul otomatis di sini.
+                    {biteshipFallbackMessage(order.biteship_status, order.courier_name)}
                   </p>
                 ) : (
                   <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-2xl p-3">

@@ -4,6 +4,7 @@ import type { Order } from '../types'
 interface RouteProgressBannerProps {
   status: Order['status']
   orderType: Order['order_type']
+  biteshipStatus?: string
   originName?: string
   destination?: string
   distanceKm?: number
@@ -34,7 +35,7 @@ const HEADLINE: Partial<Record<Order['status'], string>> = {
   rejected: 'Pesanan ditolak outlet',
 }
 
-function headlineFor(status: Order['status'], orderType: Order['order_type']): string {
+function headlineFor(status: Order['status'], orderType: Order['order_type'], biteshipStatus?: string): string {
   if (orderType === 'pickup') {
     switch (status) {
       case 'pending':
@@ -56,12 +57,40 @@ function headlineFor(status: Order['status'], orderType: Order['order_type']): s
         return status
     }
   }
+  if (status === 'completed' || status === 'delivered') {
+    switch ((biteshipStatus || '').toLowerCase()) {
+      case 'placed':
+      case 'confirmed':
+      case 'scheduled':
+        return 'Mencari driver kurir'
+      case 'allocated':
+      case 'picking_up':
+        return 'Driver menuju outlet'
+      case 'picked':
+      case 'in_transit':
+      case 'dropping_off':
+        return 'Pesanan sedang diantar'
+      case 'delivered':
+        return 'Pesanan sudah tiba'
+      case 'on_hold':
+        return 'Pengiriman ditahan sementara'
+      case 'cancelled':
+      case 'rejected':
+      case 'courier_not_found':
+      case 'return_in_transit':
+      case 'returned':
+        return 'Menunggu penjadwalan ulang kurir'
+      default:
+        break
+    }
+  }
   return HEADLINE[status] ?? status
 }
 
 export const RouteProgressBanner: React.FC<RouteProgressBannerProps> = ({
   status,
   orderType,
+  biteshipStatus,
   originName,
   destination,
   distanceKm,
@@ -98,7 +127,7 @@ export const RouteProgressBanner: React.FC<RouteProgressBannerProps> = ({
               isStopped ? 'text-red-400' : 'text-emerald-400'
             }`}
           >
-            {headlineFor(status, orderType)}
+            {headlineFor(status, orderType, biteshipStatus)}
           </span>
         </div>
 
