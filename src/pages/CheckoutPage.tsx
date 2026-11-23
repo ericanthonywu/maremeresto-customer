@@ -243,6 +243,11 @@ export const CheckoutPage: React.FC = () => {
         return
       }
 
+      if (isDelivery && (quotesLoading || !quote)) {
+        setErrorMsg('Sedang menghitung tarif pengiriman terbaru sesuai alamat Anda, mohon tunggu sebentar...')
+        return
+      }
+
       if (isDelivery && !addressDetail.trim()) {
         const msg = 'Detail alamat & patokan rumah wajib diisi agar kurir mudah menemukan lokasi Anda.'
         setAddressDetailError(msg)
@@ -349,7 +354,7 @@ export const CheckoutPage: React.FC = () => {
       }
     },
     [
-      phone, name, isDelivery, addressDetail, hardBlocker, blocker, activeBranch, orderType,
+      phone, name, isDelivery, quotesLoading, quote, addressDetail, hardBlocker, blocker, activeBranch, orderType,
       location, appliedPromo, scheduledTime, activeCourier, items, stockMap, clearCart, navigate, focusField,
     ]
   )
@@ -725,7 +730,7 @@ export const CheckoutPage: React.FC = () => {
                   <div>
                     <h3 className="font-serif font-bold text-sm text-stone-900">Pilih Kurir Pengiriman Instan 🛵</h3>
                     <p className="text-[11px] text-stone-500">
-                      Tarif real-time dari outlet {activeBranch?.name} ke alamat Anda
+                      Pickup dari <strong className="text-stone-700">{activeBranch?.name}</strong> ({quote.branch_address || activeBranch?.address})
                     </p>
                   </div>
                   {quotesLoading && (
@@ -1033,8 +1038,8 @@ export const CheckoutPage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitting || isStoreClosed || isOutOfRange || Boolean(hardBlocker)}
-                aria-disabled={isSubmitting || isStoreClosed || isOutOfRange || Boolean(hardBlocker)}
+                disabled={isSubmitting || isStoreClosed || isOutOfRange || Boolean(hardBlocker) || (isDelivery && Boolean(location) && (quotesLoading || !quote))}
+                aria-disabled={isSubmitting || isStoreClosed || isOutOfRange || Boolean(hardBlocker) || (isDelivery && Boolean(location) && (quotesLoading || !quote))}
                 className={`w-full py-4 font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm tracking-wide ${
                   isStoreClosed || isOutOfRange || Boolean(hardBlocker)
                     ? 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none border border-stone-300'
@@ -1045,6 +1050,11 @@ export const CheckoutPage: React.FC = () => {
                   <>
                     <i className="fa-solid fa-circle-notch fa-spin text-base" aria-hidden="true"></i>
                     <span>{submitStage || 'Memproses...'}</span>
+                  </>
+                ) : isDelivery && Boolean(location) && quotesLoading ? (
+                  <>
+                    <i className="fa-solid fa-circle-notch fa-spin text-base" aria-hidden="true"></i>
+                    <span>Menghitung ongkir...</span>
                   </>
                 ) : isStoreClosed ? (
                   <>

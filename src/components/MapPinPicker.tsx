@@ -56,6 +56,7 @@ export const MapPinPicker: React.FC<MapPinPickerProps> = ({
   })
   const [address, setAddress] = useState<string>(initialAddress || 'Memuat alamat titik...')
   const [addressLoading, setAddressLoading] = useState<boolean>(false)
+  const [addressPending, setAddressPending] = useState<boolean>(false)
   const [isMoving, setIsMoving] = useState<boolean>(false)
   const [detectingGps, setDetectingGps] = useState<boolean>(false)
   const [gpsError, setGpsError] = useState<string | null>(null)
@@ -69,6 +70,7 @@ export const MapPinPicker: React.FC<MapPinPickerProps> = ({
     abortCtrlRef.current = ctrl
 
     setAddressLoading(true)
+    setAddressPending(false)
     try {
       const res = await customerApi.reverseGeocode(lat, lon)
       if (!ctrl.signal.aborted) {
@@ -137,12 +139,14 @@ export const MapPinPicker: React.FC<MapPinPickerProps> = ({
     // Handle map drag/pan events
     map.on('movestart', () => {
       setIsMoving(true)
+      setAddressPending(true)
     })
 
     map.on('moveend', () => {
       setIsMoving(false)
       const center = map.getCenter()
       setCoords({ lat: center.lat, lon: center.lng })
+      setAddressPending(true)
 
       if (debounceTimerRef.current) {
         window.clearTimeout(debounceTimerRef.current)
@@ -204,7 +208,7 @@ export const MapPinPicker: React.FC<MapPinPickerProps> = ({
   }, [])
 
   const handleConfirm = () => {
-    if (!inSurakarta) return
+    if (!inSurakarta || isMoving || addressPending || addressLoading || !address.trim() || address === 'Memuat alamat titik...') return
     onSelectLocation({
       lat: coords.lat,
       lon: coords.lon,
@@ -316,7 +320,7 @@ export const MapPinPicker: React.FC<MapPinPickerProps> = ({
         </div>
 
         <div className="min-h-[38px] flex items-center">
-          {addressLoading || isMoving ? (
+          {addressLoading || addressPending || isMoving ? (
             <div className="flex items-center gap-2 text-stone-500 text-xs py-1">
               <i className="fa-solid fa-circle-notch fa-spin text-brand-600 text-xs" />
               <span className="italic text-[11px]">Mendapatkan nama jalan dan kelurahan...</span>
@@ -353,7 +357,7 @@ export const MapPinPicker: React.FC<MapPinPickerProps> = ({
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={!inSurakarta || addressLoading}
+          disabled={!inSurakarta || isMoving || addressPending || addressLoading || !address.trim() || address === 'Memuat alamat titik...'}
           className="flex-1 py-3.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
         >
           <i className="fa-solid fa-check text-sm" aria-hidden="true" />

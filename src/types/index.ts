@@ -160,6 +160,7 @@ export interface BranchDeliveryQuote {
   branch_id: string
   branch_slug: string
   branch_name: string
+  branch_address?: string
   distance_km: number
   distance_meters: number
   delivery_fee: number
