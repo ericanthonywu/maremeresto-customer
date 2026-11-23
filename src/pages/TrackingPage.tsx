@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { customerApi, errorMessage, formatRupiah, isLoggedIn } from '../api/client'
 import { useWebSocket, type OrderUpdate } from '../context/WebSocketContext'
 import { useCustomerAuth } from '../context/CustomerAuthContext'
 import type { Order } from '../types'
 import { RouteProgressBanner } from '../components/RouteProgressBanner'
-import { OrderTimeline } from '../components/OrderTimeline'
 import { OrderFeedbackCard } from '../components/OrderFeedbackCard'
 import { OrderTrackingSkeleton, RecentOrdersSkeleton } from '../components/Skeleton'
 
@@ -78,9 +77,18 @@ function biteshipFallbackMessage(status?: string, courierName?: string): string 
   }
 }
 
+function formatWhatsAppNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`
+  if (digits.startsWith('8')) return `62${digits}`
+  return digits
+}
+
 export const TrackingPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
+  const routerLocation = useLocation()
   const navigate = useNavigate()
   const { subscribeToOrder } = useWebSocket()
   const { openAuthModal } = useCustomerAuth()
@@ -310,6 +318,22 @@ export const TrackingPage: React.FC = () => {
 
   const isOrderLoading = Boolean(orderId) && (loading || (!order || order.id !== orderId)) && !loadError
   const isRecentLoading = !orderId && (loading || recentOrders === null) && !loadError
+
+  const focusRatingSection = useCallback(() => {
+    window.setTimeout(() => {
+      const el = document.getElementById('rating-section')
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.focus({ preventScroll: true })
+      }
+    }, 120)
+  }, [])
+
+  useEffect(() => {
+    if (isOrderLoading || !order || order.status !== 'completed') return
+    if (routerLocation.hash !== '#rating-section') return
+    focusRatingSection()
+  }, [isOrderLoading, order, routerLocation.hash, focusRatingSection])
 
   // Categorize orders for the list view
   const pendingOrders = useMemo(() => (recentOrders || []).filter((o) => o.status === 'pending'), [recentOrders])
@@ -592,12 +616,14 @@ export const TrackingPage: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    {order.driver_phone && (
+                    {order.driver_phone && formatWhatsAppNumber(order.driver_phone) && (
                       <a
-                        href={`tel:${order.driver_phone}`}
-                        className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0"
+                        href={`https://wa.me/${formatWhatsAppNumber(order.driver_phone)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0 shadow-xs transition-colors"
                       >
-                        <i className="fa-solid fa-phone text-[11px]" aria-hidden="true"></i>
+                        <i className="fa-brands fa-whatsapp text-sm" aria-hidden="true"></i>
                         <span>Hubungi Driver</span>
                       </a>
                     )}
@@ -658,7 +684,17 @@ export const TrackingPage: React.FC = () => {
               </section>
             )}
 
-            <OrderTimeline status={order.status} orderType={order.order_type} rejectionReason={order.rejection_reason} />
+            {order.status === 'rejected' && order.rejection_reason && (
+              <div className="bg-white rounded-3xl p-5 border border-red-200 shadow-sm flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                  <i className="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+                </div>
+                <div className="text-xs">
+                  <h3 className="font-serif font-bold text-sm text-stone-900">Pesanan Ditolak Outlet</h3>
+                  <p className="mt-1 text-red-800 font-semibold">Alasan penolakan: {order.rejection_reason}</p>
+                </div>
+              </div>
+            )}
 
             {order.status === 'completed' && (
               <OrderFeedbackCard
@@ -1204,7 +1240,7 @@ export const TrackingPage: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setShowRatingReminder(false)
-                  document.getElementById('rating-section')?.scrollIntoView({ behavior: 'smooth' })
+                  focusRatingSection()
                 }}
                 className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
               >

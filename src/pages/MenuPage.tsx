@@ -251,14 +251,9 @@ export const MenuPage: React.FC = () => {
                 <i className="fa-solid fa-star" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="font-serif font-bold text-sm sm:text-base text-stone-900">
-                    Sebelum Lanjut ke Halaman Lain, Jangan Lupa Rating Ya! ⭐
-                  </h4>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                    #{unratedOrder.order_number}
-                  </span>
-                </div>
+                <h4 className="font-serif font-bold text-sm sm:text-base text-stone-900">
+                  Sebelum Lanjut ke Halaman Lain, Jangan Lupa Rating Ya! ⭐
+                </h4>
                 <p className="text-xs text-stone-600 mt-1 leading-relaxed">
                   Bagaimana rasa hidangan Maremè kamu tadi? Sebelum lanjut memilih menu atau ke halaman lain, yuk luangkan 10 detik untuk beri rating singkat. Masukanmu sangat berarti bagi barista &amp; koki kami 😊 <span className="text-stone-400 font-medium">(Santai saja, tidak wajib kok!)</span>
                 </p>

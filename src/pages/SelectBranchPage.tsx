@@ -6,6 +6,7 @@ import { LocationModal } from '../components/LocationModal'
 import { BranchSkeletonGrid } from '../components/Skeleton'
 import { SEO } from '../components/SEO'
 import { BestSellerPreview } from '../components/BestSellerPreview'
+import { RatingReminderModal } from '../components/RatingReminderModal'
 
 export const SelectBranchPage: React.FC = () => {
   const { branches, loading, error, reload, quotesError, quotesLoading } = useBranch()
@@ -116,6 +117,7 @@ export const SelectBranchPage: React.FC = () => {
       </main>
 
       <LocationModal isOpen={isLocationModalOpen} onClose={() => setIsLocationModalOpen(false)} />
+      <RatingReminderModal suppressed={isLocationModalOpen} />
     </div>
   )
 }

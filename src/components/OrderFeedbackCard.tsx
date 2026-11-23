@@ -336,7 +336,9 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
     return (
       <section
         ref={cardRef}
-        className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-4"
+        id="rating-section"
+        tabIndex={-1}
+        className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-4 scroll-mt-24 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-3 pb-3 border-b border-stone-100">
@@ -452,7 +454,8 @@ export const OrderFeedbackCard: React.FC<OrderFeedbackCardProps> = ({ order, onS
       <section
         ref={cardRef}
         id="rating-section"
-        className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-5"
+        tabIndex={-1}
+        className="bg-white rounded-3xl p-5 sm:p-6 border border-amber-200/90 shadow-sm space-y-5 scroll-mt-24 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
       >
         {/* Header */}
         <div className="flex items-start gap-3">
