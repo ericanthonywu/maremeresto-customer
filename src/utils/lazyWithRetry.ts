@@ -6,8 +6,10 @@ const RELOAD_COOLDOWN_MS = 15_000
 const CHUNK_ERROR_PATTERNS = [
   'failed to fetch dynamically imported module',
   'importing a module script failed',
+  'failed to load module script',
   'error loading dynamically imported module',
   'unable to preload css',
+  'load failed',
   'chunkloaderror',
   'loading chunk',
 ]

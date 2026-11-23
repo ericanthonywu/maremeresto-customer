@@ -30,10 +30,12 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          // Never precache index.html so reloads always pull the latest entry HTML from Nginx
+          globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+          navigateFallback: null,
+          cleanupOutdatedCaches: true,
           // API responses must never be served from the precache: a cached
           // menu, order status or delivery quote would show stale prices.
-          navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//],
           runtimeCaching: [
             {
               urlPattern: /^\/api\//,

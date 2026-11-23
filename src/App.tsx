@@ -10,18 +10,15 @@ import { AppHeader } from './components/AppHeader'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { CustomerAuthModal } from './components/CustomerAuthModal'
 
-import { Suspense, useEffect } from 'react'
-import { InteractiveLoader } from './components/InteractiveLoader'
+import { useEffect } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { lazyWithRetry } from './utils/lazyWithRetry'
-
-const SelectBranchPage = lazyWithRetry(() => import('./pages/SelectBranchPage').then((m) => ({ default: m.SelectBranchPage })))
-const MenuPage = lazyWithRetry(() => import('./pages/MenuPage').then((m) => ({ default: m.MenuPage })))
-const CartPage = lazyWithRetry(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })))
-const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })))
-const OrderSuccessPage = lazyWithRetry(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })))
-const TrackingPage = lazyWithRetry(() => import('./pages/TrackingPage').then((m) => ({ default: m.TrackingPage })))
-const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
+import { SelectBranchPage } from './pages/SelectBranchPage'
+import { MenuPage } from './pages/MenuPage'
+import { CartPage } from './pages/CartPage'
+import { CheckoutPage } from './pages/CheckoutPage'
+import { OrderSuccessPage } from './pages/OrderSuccessPage'
+import { TrackingPage } from './pages/TrackingPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 declare global {
   interface Window {
@@ -62,19 +59,17 @@ export const App: React.FC = () => {
 
                     <main className="flex-1">
                       <ErrorBoundary>
-                        <Suspense fallback={<InteractiveLoader />}>
-                          <Routes>
-                            <Route path="/" element={<Navigate to="/branches" replace />} />
-                            <Route path="/branches" element={<SelectBranchPage />} />
-                            <Route path="/menu" element={<MenuPage />} />
-                            <Route path="/cart" element={<CartPage />} />
-                            <Route path="/checkout" element={<CheckoutPage />} />
-                            <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
-                            <Route path="/tracking" element={<TrackingPage />} />
-                            <Route path="/tracking/:orderId" element={<TrackingPage />} />
-                            <Route path="*" element={<NotFoundPage />} />
-                          </Routes>
-                        </Suspense>
+                        <Routes>
+                          <Route path="/" element={<Navigate to="/branches" replace />} />
+                          <Route path="/branches" element={<SelectBranchPage />} />
+                          <Route path="/menu" element={<MenuPage />} />
+                          <Route path="/cart" element={<CartPage />} />
+                          <Route path="/checkout" element={<CheckoutPage />} />
+                          <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+                          <Route path="/tracking" element={<TrackingPage />} />
+                          <Route path="/tracking/:orderId" element={<TrackingPage />} />
+                          <Route path="*" element={<NotFoundPage />} />
+                        </Routes>
                       </ErrorBoundary>
                     </main>
 
