@@ -14,6 +14,19 @@ export type OrderUpdate = {
   version?: number
   message?: string
   rejection_reason?: string
+  courier_company?: string
+  courier_type?: string
+  courier_name?: string
+  biteship_order_id?: string
+  biteship_tracking_id?: string
+  biteship_waybill_id?: string
+  biteship_tracking_url?: string
+  biteship_status?: string
+  driver_name?: string
+  driver_phone?: string
+  driver_plate?: string
+  driver_photo_url?: string
+  courier_dispatched_at?: string
 }
 
 interface WebSocketContextType {

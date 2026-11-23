@@ -170,6 +170,8 @@ export interface CreateOrderPayload {
   delivery_lon: number | null
   promo_code: string
   scheduled_at: string | null
+  courier_company?: 'gojek' | 'grab'
+  courier_type?: 'instant'
   items: Array<{ menu_item_id: string; quantity: number; notes: string }>
 }
 

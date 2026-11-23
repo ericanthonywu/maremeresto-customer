@@ -79,6 +79,19 @@ export interface Order {
   grand_total: number
   promo_code?: string
   scheduled_at?: string
+  courier_company?: 'gojek' | 'grab' | string
+  courier_type?: string
+  courier_name?: string
+  biteship_order_id?: string
+  biteship_tracking_id?: string
+  biteship_waybill_id?: string
+  biteship_tracking_url?: string
+  biteship_status?: string
+  driver_name?: string
+  driver_phone?: string
+  driver_plate?: string
+  driver_photo_url?: string
+  courier_dispatched_at?: string
   rejection_reason?: string
   feedback?: OrderFeedback
   is_first_order?: boolean
@@ -133,6 +146,14 @@ export interface Payment {
   qr_string?: string
 }
 
+export interface CourierOption {
+  courier_company: 'gojek' | 'grab'
+  courier_type: 'instant'
+  courier_name: string
+  duration: string
+  price: number
+}
+
 /** One branch's live delivery quote, priced entirely by the backend. */
 export interface BranchDeliveryQuote {
   branch_id: string
@@ -141,6 +162,7 @@ export interface BranchDeliveryQuote {
   distance_km: number
   distance_meters: number
   delivery_fee: number
+  courier_options?: CourierOption[]
   service_fee: number
   min_order_amount: number
   eta_minutes: number

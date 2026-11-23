@@ -14,6 +14,29 @@ const CANCEL_WINDOW_MS = 5 * 60 * 1000
 /** Statuses where nothing further will change, so polling can stop. */
 const TERMINAL_STATUSES: Array<Order['status']> = ['completed', 'cancelled', 'rejected', 'delivered']
 
+function biteshipStatusInfo(status?: string): { label: string; color: string } {
+  switch ((status || '').toLowerCase()) {
+    case 'confirmed':
+      return { label: 'Kurir dipanggil, mencari driver...', color: 'bg-amber-100 text-amber-900 border-amber-300' }
+    case 'allocated':
+      return { label: 'Driver ditemukan', color: 'bg-blue-100 text-blue-900 border-blue-300' }
+    case 'picking_up':
+      return { label: 'Driver menuju outlet', color: 'bg-indigo-100 text-indigo-900 border-indigo-300' }
+    case 'picked':
+      return { label: 'Pesanan diambil driver', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
+    case 'dropping_off':
+      return { label: 'Driver menuju lokasi Anda', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
+    case 'delivered':
+      return { label: 'Pesanan sudah tiba', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
+    case 'cancelled':
+    case 'rejected':
+    case 'courier_not_found':
+      return { label: 'Menunggu penjadwalan ulang kurir', color: 'bg-red-100 text-red-800 border-red-200' }
+    default:
+      return { label: status || 'Menunggu kurir', color: 'bg-stone-100 text-stone-700 border-stone-200' }
+  }
+}
+
 export const TrackingPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -137,6 +160,19 @@ export const TrackingPage: React.FC = () => {
                 status: payload.status as Order['status'],
                 version: payload.version ?? prev.version,
                 rejection_reason: payload.rejection_reason ?? prev.rejection_reason,
+                courier_company: payload.courier_company ?? prev.courier_company,
+                courier_type: payload.courier_type ?? prev.courier_type,
+                courier_name: payload.courier_name ?? prev.courier_name,
+                biteship_order_id: payload.biteship_order_id ?? prev.biteship_order_id,
+                biteship_tracking_id: payload.biteship_tracking_id ?? prev.biteship_tracking_id,
+                biteship_waybill_id: payload.biteship_waybill_id ?? prev.biteship_waybill_id,
+                biteship_tracking_url: payload.biteship_tracking_url ?? prev.biteship_tracking_url,
+                biteship_status: payload.biteship_status ?? prev.biteship_status,
+                driver_name: payload.driver_name ?? prev.driver_name,
+                driver_phone: payload.driver_phone ?? prev.driver_phone,
+                driver_plate: payload.driver_plate ?? prev.driver_plate,
+                driver_photo_url: payload.driver_photo_url ?? prev.driver_photo_url,
+                courier_dispatched_at: payload.courier_dispatched_at ?? prev.courier_dispatched_at,
               }
             : prev
         )
@@ -461,6 +497,89 @@ export const TrackingPage: React.FC = () => {
               distanceKm={order.delivery_distance_km}
               createdAt={order.created_at}
             />
+
+            {order.order_type !== 'pickup' && (order.courier_name || order.biteship_order_id || order.biteship_tracking_url || order.driver_name) && (
+              <section className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3" aria-label="Informasi kurir dan pelacakan">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-base shrink-0" aria-hidden="true">
+                      <i className="fa-solid fa-motorcycle"></i>
+                    </div>
+                    <div>
+                      <h2 className="font-serif font-bold text-sm text-stone-900">
+                        {order.courier_name || 'Kurir Instan'}
+                      </h2>
+                      {order.biteship_waybill_id && (
+                        <p className="text-[11px] font-mono text-stone-500">
+                          Resi: {order.biteship_waybill_id}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {order.biteship_status && (
+                    <span
+                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${biteshipStatusInfo(order.biteship_status).color}`}
+                    >
+                      {biteshipStatusInfo(order.biteship_status).label}
+                    </span>
+                  )}
+                </div>
+
+                {(order.driver_name || order.driver_phone || order.driver_plate) ? (
+                  <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {order.driver_photo_url ? (
+                        <img
+                          src={order.driver_photo_url}
+                          alt={order.driver_name || 'Foto driver'}
+                          className="w-11 h-11 rounded-full object-cover border border-stone-200 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center shrink-0" aria-hidden="true">
+                          <i className="fa-solid fa-user"></i>
+                        </div>
+                      )}
+                      <div className="min-w-0 text-xs">
+                        <p className="font-bold text-stone-900 truncate">{order.driver_name || 'Driver dalam perjalanan'}</p>
+                        <p className="text-[11px] text-stone-600 font-mono">
+                          {[order.driver_plate, order.driver_phone].filter(Boolean).join(' · ')}
+                        </p>
+                      </div>
+                    </div>
+                    {order.driver_phone && (
+                      <a
+                        href={`tel:${order.driver_phone}`}
+                        className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0"
+                      >
+                        <i className="fa-solid fa-phone text-[11px]" aria-hidden="true"></i>
+                        <span>Hubungi Driver</span>
+                      </a>
+                    )}
+                  </div>
+                ) : order.biteship_order_id ? (
+                  <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-2xl p-3">
+                    Sedang mencarikan driver {order.courier_name || 'kurir instan'}. Nama dan nomor driver akan muncul otomatis di sini.
+                  </p>
+                ) : (
+                  <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-2xl p-3">
+                    Outlet akan memanggil driver {order.courier_name || 'kurir instan'} setelah pesanan selesai disiapkan.
+                  </p>
+                )}
+
+                {order.biteship_tracking_url && (
+                  <a
+                    href={order.biteship_tracking_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 px-4 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
+                  >
+                    <i className="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+                    <span>Lacak Posisi Kurir Live</span>
+                    <i className="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-80" aria-hidden="true"></i>
+                  </a>
+                )}
+              </section>
+            )}
 
             {order.branch?.whatsapp_number && (
               <section className="rounded-3xl border-2 border-emerald-400 bg-emerald-50 p-4 shadow-md shadow-emerald-100" aria-label="Hubungi admin cabang">

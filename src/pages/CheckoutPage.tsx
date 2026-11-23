@@ -57,6 +57,7 @@ export const CheckoutPage: React.FC = () => {
   const [scheduledTime, setScheduledTime] = useState('')
   const [scheduledTimeError, setScheduledTimeError] = useState<string | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
+  const [selectedCourier, setSelectedCourier] = useState<'gojek' | 'grab'>('gojek')
 
   const scheduledTimeRef = useRef<HTMLInputElement>(null)
   const locationBtnRef = useRef<HTMLButtonElement>(null)
@@ -105,8 +106,16 @@ export const CheckoutPage: React.FC = () => {
 
   const isOutOfRange = Boolean(isDelivery && quote && !quote.within_radius)
   const isOutsideSolo = Boolean(isDelivery && quote && quote.within_solo === false)
+  const courierOptions = useMemo(() => quote?.courier_options ?? [], [quote])
+  const activeCourier = useMemo(() => {
+    if (courierOptions.length === 0) return null
+    return courierOptions.find((c) => c.courier_company === selectedCourier) ?? courierOptions[0]
+  }, [courierOptions, selectedCourier])
+  const courierUnavailable = Boolean(
+    isDelivery && quote && quote.within_radius && quote.courier_options && quote.courier_options.length === 0
+  )
 
-  const deliveryFee = isDelivery && quote && quote.within_radius ? quote.delivery_fee : 0
+  const deliveryFee = isDelivery && quote && quote.within_radius ? (activeCourier ? activeCourier.price : quote.delivery_fee) : 0
   const serviceFee = quote?.service_fee ?? activeBranch?.service_fee ?? 2000
 
   // Re-validate applied promo when switching between delivery/pickup or when deliveryFee changes
@@ -145,8 +154,11 @@ export const CheckoutPage: React.FC = () => {
       }
       return `Alamat Anda (${quote.distance_km} km) berada di luar jangkauan pengiriman cabang ${activeBranch.name} (maksimal ${quote.max_radius_km} km). Anda bisa memilih cabang lain yang lebih dekat atau memilih opsi Ambil di Cabang.`
     }
+    if (courierUnavailable) {
+      return 'Kurir instan (GoSend / Grab) belum tersedia untuk rute pengiriman Anda saat ini. Silakan ubah alamat, pilih cabang lain, atau pilih Ambil di Cabang.'
+    }
     return null
-  }, [items, activeBranch, unavailableItems, isDelivery, quote])
+  }, [items, activeBranch, unavailableItems, isDelivery, quote, courierUnavailable])
 
   /** Everything that must be true before the order is sent to the API. */
   const blocker = useMemo<string | null>(() => {
@@ -283,6 +295,8 @@ export const CheckoutPage: React.FC = () => {
           delivery_lon: isDelivery && location ? location.lon : null,
           promo_code: appliedPromo,
           scheduled_at: orderType === 'scheduled' ? scheduledTimestamp(scheduledTime) : null,
+          courier_company: isDelivery ? activeCourier?.courier_company : undefined,
+          courier_type: isDelivery ? 'instant' : undefined,
           items: items.map((item) => ({
             menu_item_id: stockMap[item.id]?.targetMenuItemId || item.menu_item_id,
             quantity: item.quantity,
@@ -329,7 +343,7 @@ export const CheckoutPage: React.FC = () => {
     },
     [
       phone, name, isDelivery, addressDetail, hardBlocker, blocker, activeBranch, orderType,
-      location, appliedPromo, scheduledTime, items, stockMap, clearCart, navigate, focusField,
+      location, appliedPromo, scheduledTime, activeCourier, items, stockMap, clearCart, navigate, focusField,
     ]
   )
 
@@ -697,6 +711,76 @@ export const CheckoutPage: React.FC = () => {
               )}
             </div>
 
+            {/* ---- Instant courier selection (GoSend / Grab) ---- */}
+            {isDelivery && quote && quote.within_radius && (
+              <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-serif font-bold text-sm text-stone-900">Pilih Kurir Pengiriman Instan 🛵</h3>
+                    <p className="text-[11px] text-stone-500">
+                      Tarif real-time dari outlet {activeBranch?.name} ke alamat Anda
+                    </p>
+                  </div>
+                  {quotesLoading && (
+                    <i className="fa-solid fa-circle-notch fa-spin text-brand-600 text-sm mt-1" aria-hidden="true"></i>
+                  )}
+                </div>
+
+                {courierOptions.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {courierOptions.map((opt) => {
+                      const isPicked = activeCourier?.courier_company === opt.courier_company
+                      const isGojek = opt.courier_company === 'gojek'
+                      return (
+                        <button
+                          key={opt.courier_company}
+                          type="button"
+                          aria-pressed={isPicked}
+                          onClick={() => setSelectedCourier(opt.courier_company)}
+                          className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 ${
+                            isPicked
+                              ? 'bg-emerald-50/70 border-emerald-500 shadow-sm ring-2 ring-emerald-500/25'
+                              : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex h-6 w-6 items-center justify-center rounded-lg text-xs font-bold text-white shrink-0 ${
+                                  isGojek ? 'bg-emerald-600' : 'bg-green-700'
+                                }`}
+                                aria-hidden="true"
+                              >
+                                <i className="fa-solid fa-motorcycle"></i>
+                              </span>
+                              <span className="font-bold text-xs text-stone-900 truncate">{opt.courier_name}</span>
+                            </div>
+                            {opt.duration && (
+                              <span className="block text-[10px] text-stone-500 mt-1 pl-8">
+                                Estimasi: {opt.duration}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="block font-mono font-extrabold text-xs text-stone-900">
+                              {formatRupiah(opt.price)}
+                            </span>
+                            {isPicked && (
+                              <span className="text-[10px] font-bold text-emerald-700">Dipilih</span>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-2xl p-3">
+                    Kurir instan GoSend / Grab belum tersedia untuk rute ini. Silakan pilih cabang lain atau Ambil di Cabang.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* ---- Order items preview & stock status ---- */}
             <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
@@ -844,7 +928,9 @@ export const CheckoutPage: React.FC = () => {
 
                 {isDelivery ? (
                   <div className="flex justify-between">
-                    <span>Biaya Pengiriman{quote ? ` (${quote.distance_km} km)` : ''}</span>
+                    <span>
+                      Ongkir {activeCourier ? `(${activeCourier.courier_name})` : quote ? `(${quote.distance_km} km)` : ''}
+                    </span>
                     {isOutOfRange ? (
                       <span className="font-bold text-red-600">Di luar jangkauan</span>
                     ) : (
