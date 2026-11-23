@@ -257,7 +257,7 @@ export const MenuPage: React.FC = () => {
                   Sebelum Lanjut ke Halaman Lain, Jangan Lupa Rating Ya! ⭐
                 </h4>
                 <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                  Bagaimana rasa hidangan Maremè kamu tadi? Sebelum lanjut memilih menu atau ke halaman lain, yuk luangkan 10 detik untuk beri rating singkat. Masukanmu sangat berarti bagi barista &amp; koki kami 😊 <span className="text-stone-400 font-medium">(Santai saja, tidak wajib kok!)</span>
+                  Bagaimana rasa hidangan Maremè kamu tadi? Sebelum lanjut memilih menu atau ke halaman lain, yuk luangkan 10 detik untuk beri rating singkat. Masukanmu sangat berarti bagi barista &amp; koki kami 😊
                 </p>
                 <div className="flex flex-wrap items-center gap-2.5 mt-3 pt-1">
                   <Link

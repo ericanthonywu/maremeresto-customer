@@ -4,6 +4,9 @@ import './index.css'
 import App from './App.tsx'
 import {DevSupport} from "@react-buddy/ide-toolbox";
 import {ComponentPreviews, useInitial} from "./dev";
+import {registerPreloadErrorHandler} from "./utils/lazyWithRetry";
+
+registerPreloadErrorHandler();
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>

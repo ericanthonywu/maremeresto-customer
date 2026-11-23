@@ -10,16 +10,18 @@ import { AppHeader } from './components/AppHeader'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { CustomerAuthModal } from './components/CustomerAuthModal'
 
-import { lazy, Suspense, useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { InteractiveLoader } from './components/InteractiveLoader'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { lazyWithRetry } from './utils/lazyWithRetry'
 
-const SelectBranchPage = lazy(() => import('./pages/SelectBranchPage').then((m) => ({ default: m.SelectBranchPage })))
-const MenuPage = lazy(() => import('./pages/MenuPage').then((m) => ({ default: m.MenuPage })))
-const CartPage = lazy(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })))
-const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })))
-const OrderSuccessPage = lazy(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })))
-const TrackingPage = lazy(() => import('./pages/TrackingPage').then((m) => ({ default: m.TrackingPage })))
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
+const SelectBranchPage = lazyWithRetry(() => import('./pages/SelectBranchPage').then((m) => ({ default: m.SelectBranchPage })))
+const MenuPage = lazyWithRetry(() => import('./pages/MenuPage').then((m) => ({ default: m.MenuPage })))
+const CartPage = lazyWithRetry(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })))
+const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })))
+const OrderSuccessPage = lazyWithRetry(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })))
+const TrackingPage = lazyWithRetry(() => import('./pages/TrackingPage').then((m) => ({ default: m.TrackingPage })))
+const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 declare global {
   interface Window {
@@ -59,19 +61,21 @@ export const App: React.FC = () => {
                     <AppHeader />
 
                     <main className="flex-1">
-                      <Suspense fallback={<InteractiveLoader />}>
-                        <Routes>
-                          <Route path="/" element={<Navigate to="/branches" replace />} />
-                          <Route path="/branches" element={<SelectBranchPage />} />
-                          <Route path="/menu" element={<MenuPage />} />
-                          <Route path="/cart" element={<CartPage />} />
-                          <Route path="/checkout" element={<CheckoutPage />} />
-                          <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
-                          <Route path="/tracking" element={<TrackingPage />} />
-                          <Route path="/tracking/:orderId" element={<TrackingPage />} />
-                          <Route path="*" element={<NotFoundPage />} />
-                        </Routes>
-                      </Suspense>
+                      <ErrorBoundary>
+                        <Suspense fallback={<InteractiveLoader />}>
+                          <Routes>
+                            <Route path="/" element={<Navigate to="/branches" replace />} />
+                            <Route path="/branches" element={<SelectBranchPage />} />
+                            <Route path="/menu" element={<MenuPage />} />
+                            <Route path="/cart" element={<CartPage />} />
+                            <Route path="/checkout" element={<CheckoutPage />} />
+                            <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+                            <Route path="/tracking" element={<TrackingPage />} />
+                            <Route path="/tracking/:orderId" element={<TrackingPage />} />
+                            <Route path="*" element={<NotFoundPage />} />
+                          </Routes>
+                        </Suspense>
+                      </ErrorBoundary>
                     </main>
 
                     <MobileBottomNav />

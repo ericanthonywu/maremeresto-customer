@@ -104,9 +104,6 @@ export const RatingReminderModal: React.FC<RatingReminderModalProps> = ({ suppre
           <p className="text-xs text-stone-600 leading-relaxed">
             Bagaimana rasa hidangan Maremè kamu tadi? Yuk luangkan 10 detik untuk beri rating singkat. Masukanmu sangat berarti bagi barista &amp; koki kami 😊
           </p>
-          <p className="text-[11px] text-stone-400">
-            (Santai saja, tidak wajib kok dan bisa kamu lewati kapan saja)
-          </p>
         </div>
 
         <div className="flex flex-col gap-2 pt-1">

@@ -1231,9 +1231,6 @@ export const TrackingPage: React.FC = () => {
               <p className="text-xs text-stone-600 leading-relaxed">
                 Bagaimana rasa makanan dan pelayanan Maremè hari ini? Berikan ulasan singkat 10 detik agar koki kami bisa terus menyajikan yang terbaik untukmu 😊
               </p>
-              <p className="text-[11px] text-stone-400">
-                (Santai saja, ini tidak wajib kok dan bisa kamu lewati jika sedang terburu-buru)
-              </p>
             </div>
             <div className="flex flex-col gap-2 pt-2">
               <button
