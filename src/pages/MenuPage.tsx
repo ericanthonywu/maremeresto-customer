@@ -7,6 +7,7 @@ import type { Category, MenuItem, Order } from '../types'
 import { CategoryTabs } from '../components/CategoryTabs'
 import { MenuItemCard } from '../components/MenuItemCard'
 import { AddToCartModal } from '../components/AddToCartModal'
+import { MenuImagePreviewModal } from '../components/MenuImagePreviewModal'
 import { StickyCartSidebar } from '../components/StickyCartSidebar'
 import { FloatingCartBar } from '../components/FloatingCartBar'
 import { HalalCertificateBadge } from '../components/HalalCertificateBadge'
@@ -24,6 +25,7 @@ export const MenuPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [confirmItem, setConfirmItem] = useState<MenuItem | null>(null)
+  const [previewItem, setPreviewItem] = useState<MenuItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -345,6 +347,7 @@ export const MenuPage: React.FC = () => {
                     item={item}
                     outletOpen={selectedBranch.is_open_now}
                     onOpenConfirm={(it) => setConfirmItem(it)}
+                    onPreviewImage={(it) => setPreviewItem(it)}
                   />
                 ))}
               </div>
@@ -365,6 +368,18 @@ export const MenuPage: React.FC = () => {
         onConfirm={(item, notes, quantity) => {
           addToCart(item, notes, quantity)
           setConfirmItem(null)
+        }}
+      />
+
+      {/* Food image preview modal */}
+      <MenuImagePreviewModal
+        isOpen={Boolean(previewItem)}
+        item={previewItem}
+        outletOpen={selectedBranch?.is_open_now ?? true}
+        onClose={() => setPreviewItem(null)}
+        onOrder={(item) => {
+          setPreviewItem(null)
+          setConfirmItem(item)
         }}
       />
     </div>

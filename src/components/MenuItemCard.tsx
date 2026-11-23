@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import type { MenuItem } from '../types'
 import { useCart } from '../context/CartContext'
 import { formatRupiah } from '../api/client'
@@ -8,16 +8,24 @@ interface MenuItemCardProps {
   /** A closed outlet cannot take orders, so adding to the basket is blocked. */
   outletOpen?: boolean
   onOpenConfirm?: (item: MenuItem) => void
+  onPreviewImage?: (item: MenuItem) => void
 }
 
 export const MenuItemCard: React.FC<MenuItemCardProps> = ({
   item,
   outletOpen = true,
   onOpenConfirm,
+  onPreviewImage,
 }) => {
   const { addToCart } = useCart()
+  const [imgError, setImgError] = useState(false)
+
+  useEffect(() => {
+    setImgError(false)
+  }, [item.image_url])
 
   const canOrder = item.is_available && outletOpen
+  const hasImage = Boolean(item.image_url) && !imgError
 
   const handleAction = () => {
     if (!canOrder) return
@@ -37,17 +45,52 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
     >
       <div className="flex items-start gap-3.5 mb-3">
         {/* Icon / Image thumbnail */}
-        <div
-          className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
-            item.icon_bg_class || 'bg-amber-50'
-          }`}
-        >
-          {item.image_url ? (
-            <img src={item.image_url} alt="" loading="lazy" className="w-full h-full object-cover rounded-xl" />
-          ) : (
-            <i className={`fa-solid ${item.icon || 'fa-mug-hot'} text-brand-700`}></i>
-          )}
-        </div>
+        {hasImage && onPreviewImage ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onPreviewImage(item)
+            }}
+            aria-label={`Lihat foto ${item.name}`}
+            title="Lihat preview gambar"
+            className={`relative w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0 overflow-hidden group/thumb cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+              item.icon_bg_class || 'bg-amber-50'
+            }`}
+          >
+            <img
+              src={item.image_url}
+              alt={item.name}
+              loading="lazy"
+              onError={() => setImgError(true)}
+              className="w-full h-full object-cover rounded-xl group-hover/thumb:scale-105 transition-transform duration-200"
+            />
+            <span
+              className="absolute bottom-1 right-1 w-4 h-4 rounded-md bg-stone-900/65 text-white flex items-center justify-center text-[8px] shadow-xs"
+              aria-hidden="true"
+            >
+              <i className="fa-solid fa-magnifying-glass-plus" />
+            </span>
+          </button>
+        ) : (
+          <div
+            className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
+              item.icon_bg_class || 'bg-amber-50'
+            }`}
+          >
+            {hasImage ? (
+              <img
+                src={item.image_url}
+                alt={item.name}
+                loading="lazy"
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover rounded-xl"
+              />
+            ) : (
+              <i className={`fa-solid ${item.icon || 'fa-mug-hot'} text-brand-700`}></i>
+            )}
+          </div>
+        )}
 
         {/* Info */}
         <div className="flex-1 min-w-0">

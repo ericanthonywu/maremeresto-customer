@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import type { MenuItem } from '../types'
 import { formatRupiah } from '../api/client'
+import { MenuImagePreviewModal } from './MenuImagePreviewModal'
 
 interface AddToCartModalProps {
   item: MenuItem | null
@@ -17,6 +18,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 }) => {
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
+  const [showImagePreview, setShowImagePreview] = useState(false)
+  const [imgError, setImgError] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
 
   // Reset state when opening a new item
@@ -24,18 +27,20 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     if (isOpen && item) {
       setQuantity(1)
       setNotes('')
+      setShowImagePreview(false)
+      setImgError(false)
     }
   }, [isOpen, item])
 
   // Handle escape key
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || showImagePreview) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, showImagePreview, onClose])
 
   if (!isOpen || !item) return null
 
@@ -99,17 +104,38 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
         {/* Item Overview Card */}
         <div className="flex items-start gap-3.5 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/70">
-          <div
-            className={`w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0 overflow-hidden shadow-xs ${
-              item.icon_bg_class || 'bg-amber-50'
-            }`}
-          >
-            {item.image_url ? (
-              <img src={item.image_url} alt={item.name} className="w-full h-full object-cover rounded-xl" />
-            ) : (
+          {item.image_url && !imgError ? (
+            <button
+              type="button"
+              onClick={() => setShowImagePreview(true)}
+              aria-label={`Lihat foto ${item.name}`}
+              title="Lihat preview gambar"
+              className={`relative w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0 overflow-hidden shadow-xs cursor-zoom-in group/thumb focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+                item.icon_bg_class || 'bg-amber-50'
+              }`}
+            >
+              <img
+                src={item.image_url}
+                alt={item.name}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover rounded-xl group-hover/thumb:scale-105 transition-transform duration-200"
+              />
+              <span
+                className="absolute bottom-1 right-1 w-4 h-4 rounded-md bg-stone-900/65 text-white flex items-center justify-center text-[8px] shadow-xs"
+                aria-hidden="true"
+              >
+                <i className="fa-solid fa-magnifying-glass-plus" />
+              </span>
+            </button>
+          ) : (
+            <div
+              className={`w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0 overflow-hidden shadow-xs ${
+                item.icon_bg_class || 'bg-amber-50'
+              }`}
+            >
               <i className={`fa-solid ${item.icon || 'fa-bowl-food'} text-brand-700`} />
-            )}
-          </div>
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <h4 className="font-bold text-stone-900 text-sm leading-tight">{item.name}</h4>
@@ -234,6 +260,12 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           </div>
         </div>
       </div>
+
+      <MenuImagePreviewModal
+        isOpen={showImagePreview}
+        item={item}
+        onClose={() => setShowImagePreview(false)}
+      />
     </div>
   )
 }
