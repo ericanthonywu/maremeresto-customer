@@ -19,7 +19,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
   const [showImagePreview, setShowImagePreview] = useState(false)
-  const [imgError, setImgError] = useState(false)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const modalRef = useRef<HTMLDivElement>(null)
 
   // Reset state when opening a new item
@@ -28,7 +28,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
       setQuantity(1)
       setNotes('')
       setShowImagePreview(false)
-      setImgError(false)
     }
   }, [isOpen, item])
 
@@ -104,7 +103,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
         {/* Item Overview Card */}
         <div className="flex items-start gap-3.5 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200/70">
-          {item.image_url && !imgError ? (
+          {item.image_url && failedImageUrl !== item.image_url ? (
             <button
               type="button"
               onClick={() => setShowImagePreview(true)}
@@ -117,7 +116,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
               <img
                 src={item.image_url}
                 alt={item.name}
-                onError={() => setImgError(true)}
+                onError={() => setFailedImageUrl(item.image_url ?? null)}
                 className="w-full h-full object-cover rounded-xl group-hover/thumb:scale-105 transition-transform duration-200"
               />
               <span

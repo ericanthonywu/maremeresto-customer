@@ -17,11 +17,8 @@ export const MenuImagePreviewModal: React.FC<MenuImagePreviewModalProps> = ({
   onClose,
   onOrder,
 }) => {
-  const [imgError, setImgError] = useState(false)
-
-  useEffect(() => {
-    setImgError(false)
-  }, [item?.id, item?.image_url])
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+  const imgError = Boolean(item?.image_url) && failedImageUrl === item?.image_url
 
   useEffect(() => {
     if (!isOpen) return
@@ -58,7 +55,7 @@ export const MenuImagePreviewModal: React.FC<MenuImagePreviewModalProps> = ({
             <img
               src={item.image_url}
               alt={item.name}
-              onError={() => setImgError(true)}
+              onError={() => setFailedImageUrl(item.image_url ?? null)}
               className="w-full max-h-[60vh] object-contain select-none"
             />
           ) : (

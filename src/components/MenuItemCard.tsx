@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import type { MenuItem } from '../types'
 import { useCart } from '../context/CartContext'
 import { formatRupiah } from '../api/client'
@@ -18,14 +18,10 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
   onPreviewImage,
 }) => {
   const { addToCart } = useCart()
-  const [imgError, setImgError] = useState(false)
-
-  useEffect(() => {
-    setImgError(false)
-  }, [item.image_url])
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
 
   const canOrder = item.is_available && outletOpen
-  const hasImage = Boolean(item.image_url) && !imgError
+  const hasImage = Boolean(item.image_url) && failedImageUrl !== item.image_url
 
   const handleAction = () => {
     if (!canOrder) return
@@ -62,7 +58,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
               src={item.image_url}
               alt={item.name}
               loading="lazy"
-              onError={() => setImgError(true)}
+              onError={() => setFailedImageUrl(item.image_url ?? null)}
               className="w-full h-full object-cover rounded-xl group-hover/thumb:scale-105 transition-transform duration-200"
             />
             <span
@@ -83,7 +79,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
                 src={item.image_url}
                 alt={item.name}
                 loading="lazy"
-                onError={() => setImgError(true)}
+                onError={() => setFailedImageUrl(item.image_url ?? null)}
                 className="w-full h-full object-cover rounded-xl"
               />
             ) : (
