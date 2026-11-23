@@ -57,7 +57,7 @@ export const CheckoutPage: React.FC = () => {
   const [scheduledTime, setScheduledTime] = useState('')
   const [scheduledTimeError, setScheduledTimeError] = useState<string | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
-  const [selectedCourier, setSelectedCourier] = useState<'gojek' | 'grab'>('gojek')
+  const [selectedCourier, setSelectedCourier] = useState<'gojek' | 'grab' | null>(null)
 
   const scheduledTimeRef = useRef<HTMLInputElement>(null)
   const locationBtnRef = useRef<HTMLButtonElement>(null)
@@ -106,10 +106,17 @@ export const CheckoutPage: React.FC = () => {
 
   const isOutOfRange = Boolean(isDelivery && quote && !quote.within_radius)
   const isOutsideSolo = Boolean(isDelivery && quote && quote.within_solo === false)
-  const courierOptions = useMemo(() => quote?.courier_options ?? [], [quote])
+  const courierOptions = useMemo(() => {
+    const list = [...(quote?.courier_options ?? [])]
+    list.sort((a, b) => a.price - b.price)
+    return list
+  }, [quote])
   const activeCourier = useMemo(() => {
     if (courierOptions.length === 0) return null
-    return courierOptions.find((c) => c.courier_company === selectedCourier) ?? courierOptions[0]
+    if (selectedCourier) {
+      return courierOptions.find((c) => c.courier_company === selectedCourier) ?? courierOptions[0]
+    }
+    return courierOptions.find((c) => c.is_cheapest) ?? courierOptions[0]
   }, [courierOptions, selectedCourier])
   const courierUnavailable = Boolean(
     isDelivery && quote && quote.within_radius && quote.courier_options && quote.courier_options.length === 0
@@ -728,9 +735,10 @@ export const CheckoutPage: React.FC = () => {
 
                 {courierOptions.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {courierOptions.map((opt) => {
+                    {courierOptions.map((opt, idx) => {
                       const isPicked = activeCourier?.courier_company === opt.courier_company
                       const isGojek = opt.courier_company === 'gojek'
+                      const isCheapest = opt.is_cheapest ?? idx === 0
                       return (
                         <button
                           key={opt.courier_company}
@@ -744,7 +752,7 @@ export const CheckoutPage: React.FC = () => {
                           }`}
                         >
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span
                                 className={`inline-flex h-6 w-6 items-center justify-center rounded-lg text-xs font-bold text-white shrink-0 ${
                                   isGojek ? 'bg-emerald-600' : 'bg-green-700'
@@ -754,6 +762,11 @@ export const CheckoutPage: React.FC = () => {
                                 <i className="fa-solid fa-motorcycle"></i>
                               </span>
                               <span className="font-bold text-xs text-stone-900 truncate">{opt.courier_name}</span>
+                              {isCheapest && (
+                                <span className="text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
+                                  Ongkir Termurah
+                                </span>
+                              )}
                             </div>
                             {opt.duration && (
                               <span className="block text-[10px] text-stone-500 mt-1 pl-8">

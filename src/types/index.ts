@@ -152,6 +152,7 @@ export interface CourierOption {
   courier_name: string
   duration: string
   price: number
+  is_cheapest?: boolean
 }
 
 /** One branch's live delivery quote, priced entirely by the backend. */
