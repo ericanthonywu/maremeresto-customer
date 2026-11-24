@@ -8,6 +8,7 @@ import { WebSocketProvider } from './context/WebSocketContext'
 import { CustomerAuthProvider } from './context/CustomerAuthContext'
 import { AppHeader } from './components/AppHeader'
 import { MobileBottomNav } from './components/MobileBottomNav'
+import { WhatsAppFab } from './components/WhatsAppFab'
 import { CustomerAuthModal } from './components/CustomerAuthModal'
 
 import { useEffect } from 'react'
@@ -74,6 +75,7 @@ export const App: React.FC = () => {
                     </main>
 
                     <MobileBottomNav />
+                    <WhatsAppFab />
 
                     {/* Authenticate customer phone when opening the app */}
                     <CustomerAuthModal />

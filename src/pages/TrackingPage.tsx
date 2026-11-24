@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { customerApi, errorMessage, formatRupiah, isLoggedIn } from '../api/client'
+import { buildWhatsAppUrl, customerApi, errorMessage, formatRupiah, isLoggedIn } from '../api/client'
 import { useWebSocket, type OrderUpdate } from '../context/WebSocketContext'
 import { useCustomerAuth } from '../context/CustomerAuthContext'
 import type { Order } from '../types'
@@ -75,14 +75,6 @@ function biteshipFallbackMessage(status?: string, courierName?: string): string 
     default:
       return `Sedang mencarikan driver ${courier}. Nama dan nomor driver akan muncul otomatis di sini.`
   }
-}
-
-function formatWhatsAppNumber(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  if (!digits) return ''
-  if (digits.startsWith('0')) return `62${digits.slice(1)}`
-  if (digits.startsWith('8')) return `62${digits}`
-  return digits
 }
 
 export const TrackingPage: React.FC = () => {
@@ -616,9 +608,9 @@ export const TrackingPage: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    {order.driver_phone && formatWhatsAppNumber(order.driver_phone) && (
+                    {buildWhatsAppUrl(order.driver_phone) && (
                       <a
-                        href={`https://wa.me/${formatWhatsAppNumber(order.driver_phone)}`}
+                        href={buildWhatsAppUrl(order.driver_phone)!}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shrink-0 shadow-xs transition-colors"
@@ -657,7 +649,7 @@ export const TrackingPage: React.FC = () => {
               </section>
             )}
 
-            {order.branch?.whatsapp_number && (
+            {order.branch?.whatsapp_number && buildWhatsAppUrl(order.branch.whatsapp_number) && (
               <section className="rounded-3xl border-2 border-emerald-400 bg-emerald-50 p-4 shadow-md shadow-emerald-100" aria-label="Hubungi admin cabang">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-xl text-white shadow-sm" aria-hidden="true">
@@ -675,9 +667,10 @@ export const TrackingPage: React.FC = () => {
                   </div>
                 </div>
                 <a
-                  href={`https://wa.me/${order.branch.whatsapp_number.replace(/\D/g, '')}?text=${encodeURIComponent(
+                  href={buildWhatsAppUrl(
+                    order.branch.whatsapp_number,
                     `Halo ${order.branch.name}, saya ingin menanyakan pesanan ${order.order_number}.`
-                  )}`}
+                  )!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-md transition-all hover:bg-emerald-700 active:scale-[0.98]"
@@ -1127,11 +1120,12 @@ export const TrackingPage: React.FC = () => {
                               <span>Pesanan sedang diproses</span>
                             </span>
                             <div className="flex items-center gap-2 ml-auto">
-                              {o.branch?.whatsapp_number && (
+                              {o.branch?.whatsapp_number && buildWhatsAppUrl(o.branch.whatsapp_number) && (
                                 <a
-                                  href={`https://wa.me/${o.branch.whatsapp_number.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                  href={buildWhatsAppUrl(
+                                    o.branch.whatsapp_number,
                                     `Halo ${o.branch.name}, saya ingin menanyakan pesanan ${o.order_number}.`
-                                  )}`}
+                                  )!}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"

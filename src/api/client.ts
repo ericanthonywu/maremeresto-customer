@@ -151,6 +151,28 @@ export function normalizePhone(rawPhone: string): { valid: boolean; normalized: 
   return { valid: true, normalized: '+62' + cleaned }
 }
 
+/**
+ * Formats an Indonesian phone/WhatsApp number for wa.me links (e.g. "62812...").
+ */
+export function formatWhatsAppNumber(raw?: string | null): string {
+  if (!raw) return ''
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`
+  if (digits.startsWith('8')) return `62${digits}`
+  return digits
+}
+
+/**
+ * Builds a https://wa.me/... URL with an optional pre-filled message, or null when unusable.
+ */
+export function buildWhatsAppUrl(rawNumber?: string | null, message?: string): string | null {
+  const phone = formatWhatsAppNumber(rawNumber)
+  if (!phone) return null
+  if (!message) return `https://wa.me/${phone}`
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+}
+
 export function formatRupiah(value: number): string {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',

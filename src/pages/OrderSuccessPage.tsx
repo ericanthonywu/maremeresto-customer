@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { customerApi, errorMessage, formatRupiah } from '../api/client'
+import { buildWhatsAppUrl, customerApi, errorMessage, formatRupiah } from '../api/client'
 import type { Order, PaymentStatus } from '../types'
 import { OrderSuccessSkeleton } from '../components/Skeleton'
 
@@ -48,18 +48,19 @@ export const OrderSuccessPage: React.FC = () => {
   }, [load])
 
   useEffect(() => {
-    if (order && order.branch?.whatsapp_number && openedWaRef.current !== order.id) {
-      openedWaRef.current = order.id
-      const phone = order.branch.whatsapp_number.replace(/\D/g, '')
+    if (order && openedWaRef.current !== order.id) {
       const origin = typeof window !== 'undefined'
         ? (window.location.origin || `${window.location.protocol}//${window.location.host}`)
         : ''
       const trackingUrl = `${origin}/tracking/${order.id}`
-      const message = encodeURIComponent(
-        `Halo ${order.branch.name}, saya sudah membuat pesanan ${order.order_number}. Saya bisa melacak orderan saya di ${trackingUrl}`
+      const waUrl = buildWhatsAppUrl(
+        order.branch?.whatsapp_number,
+        `Halo ${order.branch?.name ?? 'Mareme'}, saya sudah membuat pesanan ${order.order_number}. Saya bisa melacak orderan saya di ${trackingUrl}`
       )
-      const waUrl = `https://wa.me/${phone}?text=${message}`
-      window.open(waUrl, '_blank', 'noopener,noreferrer')
+      if (waUrl) {
+        openedWaRef.current = order.id
+        window.open(waUrl, '_blank', 'noopener,noreferrer')
+      }
     }
   }, [order])
 
@@ -328,23 +329,28 @@ export const OrderSuccessPage: React.FC = () => {
                 </Link>
 
                 {/* The outlet's real WhatsApp number, from branch settings. */}
-                {order.branch?.whatsapp_number && (
-                  <a
-                    href={`https://wa.me/${order.branch.whatsapp_number.replace(/\D/g, '')}?text=${encodeURIComponent(
-                      `Halo ${order.branch.name}, saya sudah membuat pesanan ${order.order_number}. Saya bisa melacak orderan saya di ${
-                        typeof window !== 'undefined'
-                          ? (window.location.origin || `${window.location.protocol}//${window.location.host}`)
-                          : ''
-                      }/tracking/${order.id}`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-2xl text-xs border border-emerald-200 flex items-center justify-center gap-2 transition-all"
-                  >
-                    <i className="fa-brands fa-whatsapp text-sm" aria-hidden="true"></i>
-                    <span>Hubungi {order.branch.name}</span>
-                  </a>
-                )}
+                {(() => {
+                  const branchWaUrl = buildWhatsAppUrl(
+                    order.branch?.whatsapp_number,
+                    `Halo ${order.branch?.name ?? 'Mareme'}, saya sudah membuat pesanan ${order.order_number}. Saya bisa melacak orderan saya di ${
+                      typeof window !== 'undefined'
+                        ? (window.location.origin || `${window.location.protocol}//${window.location.host}`)
+                        : ''
+                    }/tracking/${order.id}`
+                  )
+                  if (!branchWaUrl || !order.branch) return null
+                  return (
+                    <a
+                      href={branchWaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-2xl text-xs border border-emerald-200 flex items-center justify-center gap-2 transition-all"
+                    >
+                      <i className="fa-brands fa-whatsapp text-sm" aria-hidden="true"></i>
+                      <span>Hubungi {order.branch.name}</span>
+                    </a>
+                  )
+                })()}
               </div>
             </div>
 
