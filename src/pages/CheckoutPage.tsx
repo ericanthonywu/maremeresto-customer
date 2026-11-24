@@ -118,11 +118,19 @@ export const CheckoutPage: React.FC = () => {
     }
     return courierOptions.find((c) => c.is_cheapest) ?? courierOptions[0]
   }, [courierOptions, selectedCourier])
-  const courierUnavailable = Boolean(
-    isDelivery && quote && quote.within_radius && quote.courier_options && quote.courier_options.length === 0
+  const isCourierCOD = Boolean(
+    isDelivery &&
+      quote &&
+      quote.within_radius &&
+      (quote.courier_unavailable || (quote.courier_options !== undefined && quote.courier_options.length === 0))
   )
 
-  const deliveryFee = isDelivery && quote && quote.within_radius ? (activeCourier ? activeCourier.price : quote.delivery_fee) : 0
+  const deliveryFee =
+    isDelivery && quote && quote.within_radius && !isCourierCOD
+      ? activeCourier
+        ? activeCourier.price
+        : quote.delivery_fee
+      : 0
   const serviceFee = quote?.service_fee ?? activeBranch?.service_fee ?? 2000
 
   // Re-validate applied promo when switching between delivery/pickup or when deliveryFee changes
@@ -161,11 +169,8 @@ export const CheckoutPage: React.FC = () => {
       }
       return `Alamat Anda (${quote.distance_km} km) berada di luar jangkauan pengiriman cabang ${activeBranch.name} (maksimal ${quote.max_radius_km} km). Anda bisa memilih cabang lain yang lebih dekat atau memilih opsi Ambil di Cabang.`
     }
-    if (courierUnavailable) {
-      return 'Kurir instan (GoSend / Grab) belum tersedia untuk rute pengiriman Anda saat ini. Silakan ubah alamat, pilih cabang lain, atau pilih Ambil di Cabang.'
-    }
     return null
-  }, [items, activeBranch, unavailableItems, isDelivery, quote, courierUnavailable])
+  }, [items, activeBranch, unavailableItems, isDelivery, quote])
 
   /** Everything that must be true before the order is sent to the API. */
   const blocker = useMemo<string | null>(() => {
@@ -307,8 +312,8 @@ export const CheckoutPage: React.FC = () => {
           delivery_lon: isDelivery && location ? location.lon : null,
           promo_code: appliedPromo,
           scheduled_at: orderType === 'scheduled' ? scheduledTimestamp(scheduledTime) : null,
-          courier_company: isDelivery ? activeCourier?.courier_company : undefined,
-          courier_type: isDelivery ? 'instant' : undefined,
+          courier_company: isDelivery && !isCourierCOD ? activeCourier?.courier_company : undefined,
+          courier_type: isDelivery ? (isCourierCOD ? 'cod' : 'instant') : undefined,
           items: items.map((item) => ({
             menu_item_id: stockMap[item.id]?.targetMenuItemId || item.menu_item_id,
             quantity: item.quantity,
@@ -705,6 +710,8 @@ export const CheckoutPage: React.FC = () => {
                           <span className="font-bold text-emerald-700">Bebas Ongkir</span>
                         ) : branchOutOfRange ? (
                           <span className="font-bold text-red-600 text-[10px]">Di luar jangkauan</span>
+                        ) : info?.courier_unavailable || (info?.courier_options !== undefined && info.courier_options.length === 0) ? (
+                          <span className="font-bold text-amber-700 text-[10px]">Ongkir COD</span>
                         ) : (
                           <span className="font-bold text-stone-800">
                             {info ? (info.delivery_fee === 0 ? 'Gratis' : formatRupiah(info.delivery_fee)) : '—'}
@@ -792,9 +799,16 @@ export const CheckoutPage: React.FC = () => {
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-2xl p-3">
-                    Kurir instan GoSend / Grab belum tersedia untuk rute ini. Silakan pilih cabang lain atau Ambil di Cabang.
-                  </p>
+                  <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-2xl p-3.5 space-y-1">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <i className="fa-solid fa-circle-info text-amber-600" aria-hidden="true"></i>
+                      <span>Ongkir Otomatis Tidak Tersedia — Bayar Ongkir Langsung (COD)</span>
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-amber-800">
+                      {quote.courier_error ||
+                        'Layanan cek ongkir (Biteship) sedang gangguan. Anda tetap bisa melanjutkan pesanan — ongkir tetap ditanggung customer dan dibayarkan langsung ke kurir (COD).'}
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -945,12 +959,16 @@ export const CheckoutPage: React.FC = () => {
                 </div>
 
                 {isDelivery ? (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-2">
                     <span>
-                      Ongkir {activeCourier ? `(${activeCourier.courier_name})` : quote ? `(${quote.distance_km} km)` : ''}
+                      {isCourierCOD
+                        ? 'Ongkir (Bayar langsung / COD)'
+                        : `Ongkir ${activeCourier ? `(${activeCourier.courier_name})` : quote ? `(${quote.distance_km} km)` : ''}`}
                     </span>
                     {isOutOfRange ? (
                       <span className="font-bold text-red-600">Di luar jangkauan</span>
+                    ) : isCourierCOD ? (
+                      <span className="font-bold text-amber-700 text-right">Ditanggung Customer (COD)</span>
                     ) : (
                       <span className="font-bold text-stone-900">
                         {quote ? (deliveryFee === 0 ? 'Gratis Kirim' : formatRupiah(deliveryFee)) : 'Belum dihitung'}
@@ -981,6 +999,15 @@ export const CheckoutPage: React.FC = () => {
                 <span>Total tagihan</span>
                 <span className="text-brand-700 text-lg font-mono">{formatRupiah(grandTotal)}</span>
               </div>
+
+              {isCourierCOD && !isOutOfRange && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-900 flex items-start gap-2">
+                  <i className="fa-solid fa-circle-info mt-0.5 shrink-0 text-amber-600" aria-hidden="true"></i>
+                  <span>
+                    <strong>Catatan Ongkir (COD):</strong> Layanan cek ongkir sedang gangguan, namun pesanan tetap dapat diproses. Total tagihan di atas belum termasuk ongkir — ongkos kirim tetap ditanggung customer dan dibayarkan langsung ke kurir saat pengantaran (COD).
+                  </span>
+                </div>
+              )}
 
               {incompleteFields.length > 0 && !errorMsg && !isOutOfRange && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">

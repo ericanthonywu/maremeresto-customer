@@ -145,9 +145,13 @@ export const BranchCard: React.FC<BranchCardProps> = ({ branch, onNeedLocation }
                   <i className="fa-solid fa-motorcycle text-stone-500" aria-hidden="true"></i>
                   Biaya Kirim ({quote.distance_km} km)
                 </span>
-                <span className="font-extrabold text-stone-900">
-                  {quote.delivery_fee === 0 ? 'Gratis Kirim' : formatRupiah(quote.delivery_fee)}
-                </span>
+                {quote.courier_unavailable ? (
+                  <span className="font-bold text-amber-700">Ongkir COD</span>
+                ) : (
+                  <span className="font-extrabold text-stone-900">
+                    {quote.delivery_fee === 0 ? 'Gratis Kirim' : formatRupiah(quote.delivery_fee)}
+                  </span>
+                )}
               </div>
             )
           ) : (

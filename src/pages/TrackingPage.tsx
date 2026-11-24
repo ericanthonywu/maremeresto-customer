@@ -632,6 +632,10 @@ export const TrackingPage: React.FC = () => {
                   <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-2xl p-3">
                     {biteshipFallbackMessage(order.biteship_status, order.courier_name)}
                   </p>
+                ) : order.courier_type === 'cod' ? (
+                  <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                    Ongkos kirim pesanan ini tetap ditanggung customer dan dibayarkan langsung ke kurir saat pengantaran (COD).
+                  </p>
                 ) : (
                   <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-2xl p-3">
                     Outlet akan memanggil driver {order.courier_name || 'kurir instan'} setelah pesanan selesai disiapkan.
@@ -745,12 +749,16 @@ export const TrackingPage: React.FC = () => {
                   <span className="font-mono">{formatRupiah(order.subtotal)}</span>
                 </div>
                 {order.order_type !== 'pickup' && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-2">
                     <span>
                       Ongkir
                       {order.delivery_distance_km > 0 && ` (${order.delivery_distance_km} km)`}
                     </span>
-                    <span className="font-mono">{formatRupiah(order.delivery_fee)}</span>
+                    {order.courier_type === 'cod' ? (
+                      <span className="font-bold text-amber-700 text-right">Ditanggung Customer (COD)</span>
+                    ) : (
+                      <span className="font-mono">{formatRupiah(order.delivery_fee)}</span>
+                    )}
                   </div>
                 )}
                 <div className="flex justify-between">

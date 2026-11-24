@@ -309,6 +309,15 @@ export const OrderSuccessPage: React.FC = () => {
                 <span className="text-brand-700 text-lg font-mono">{formatRupiah(order.grand_total)}</span>
               </div>
 
+              {order.order_type !== 'pickup' && order.courier_type === 'cod' && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-900 flex items-start gap-2">
+                  <i className="fa-solid fa-circle-info mt-0.5 shrink-0 text-amber-600" aria-hidden="true"></i>
+                  <span>
+                    <strong>Catatan Ongkir (COD):</strong> Ongkos kirim tetap ditanggung customer dan dibayarkan langsung ke kurir saat pengantaran (COD).
+                  </span>
+                </div>
+              )}
+
               <div className="pt-3 space-y-2">
                 <Link
                   to={`/tracking/${order.id}`}

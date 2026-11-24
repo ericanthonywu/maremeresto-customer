@@ -229,12 +229,23 @@ export const CartPage: React.FC = () => {
                       <span>Biaya Pengiriman ({quote.distance_km} km)</span>
                       {isOutOfRange ? (
                         <span className="font-bold text-red-600">Di luar jangkauan</span>
+                      ) : quote.courier_unavailable ? (
+                        <span className="font-bold text-amber-700">Ongkir COD</span>
                       ) : (
                         <span className="font-bold text-stone-900">
                           {quotesLoading ? '…' : deliveryFee === 0 ? 'Gratis Kirim' : formatRupiah(deliveryFee)}
                         </span>
                       )}
                     </div>
+                    {!isOutOfRange && quote.courier_unavailable && (
+                      <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 flex items-start gap-2">
+                        <i className="fa-solid fa-circle-info mt-0.5 shrink-0 text-amber-600" aria-hidden="true"></i>
+                        <span>
+                          {quote.courier_error ||
+                            'Layanan cek ongkir sedang gangguan. Anda tetap dapat memesan — ongkir tetap ditanggung customer dan dibayarkan langsung ke kurir (COD).'}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-stone-600">
                       <span>Biaya Layanan Aplikasi</span>
                       <span className="font-bold text-stone-900">{formatRupiah(serviceFee)}</span>

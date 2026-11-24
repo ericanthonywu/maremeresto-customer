@@ -165,6 +165,8 @@ export interface BranchDeliveryQuote {
   distance_meters: number
   delivery_fee: number
   courier_options?: CourierOption[]
+  courier_unavailable?: boolean
+  courier_error?: string
   service_fee: number
   min_order_amount: number
   eta_minutes: number

@@ -99,12 +99,19 @@ export const StickyCartSidebar: React.FC = () => {
                   <span>Ongkir ({quote.distance_km} km)</span>
                   {isOutOfRange ? (
                     <span className="font-bold text-red-600">Di luar jangkauan</span>
+                  ) : quote.courier_unavailable ? (
+                    <span className="font-bold text-amber-700">Ongkir COD</span>
                   ) : (
                     <span className="font-bold text-stone-900">
                       {quote.delivery_fee === 0 ? 'Gratis' : formatRupiah(quote.delivery_fee)}
                     </span>
                   )}
                 </div>
+                {!isOutOfRange && quote.courier_unavailable && (
+                  <p className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1.5 leading-snug">
+                    Ongkir tetap ditanggung customer & dibayar langsung (COD).
+                  </p>
+                )}
                 <div className="flex justify-between text-stone-600">
                   <span>Biaya layanan</span>
                   <span className="font-bold text-stone-900">{formatRupiah(quote.service_fee)}</span>
