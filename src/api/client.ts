@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { createTraceId, markErrorLogged, reportClientLog } from '../utils/logger'
+import { markErrorLogged, reportClientLog } from '../utils/logger'
 import type {
   Branch,
   Category,
@@ -28,9 +28,6 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
   config.headers['X-Client-App'] = 'customer'
-  if (!config.headers['X-Trace-Id']) {
-    config.headers['X-Trace-Id'] = createTraceId()
-  }
   return config
 })
 
@@ -74,9 +71,7 @@ api.interceptors.response.use(
       const status: number | undefined = error.response?.status
       const method = (config.method || 'GET').toUpperCase()
       const endpoint = `${method} ${config.url || ''}`.trim()
-      const traceId =
-        (error.response?.headers?.['x-trace-id'] as string | undefined) ||
-        (config.headers?.['X-Trace-Id'] as string | undefined)
+      const traceId = error.response?.headers?.['x-trace-id'] as string | undefined
       const apiError = error.response?.data?.error
       const detail =
         typeof apiError === 'string' && apiError.trim()

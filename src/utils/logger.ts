@@ -21,17 +21,6 @@ const sentTimestamps: number[] = []
 const LOGGED_SYMBOL = Symbol('mareme_logged')
 let handlersInstalled = false
 
-export function createTraceId(): string {
-  try {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return `fe-${crypto.randomUUID()}`
-    }
-  } catch {
-    // Fallback below
-  }
-  return `fe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
-}
-
 export function markErrorLogged(err: unknown): void {
   if (err && typeof err === 'object') {
     try {
@@ -106,7 +95,7 @@ export function reportClientLog(payload: ClientLogPayload): void {
     }
     sentTimestamps.push(now)
 
-    const traceId = clip(payload.trace_id, 64) || createTraceId()
+    const traceId = clip(payload.trace_id, 64)
     const route = clip(payload.route ?? `${window.location.pathname}${window.location.search}`, 500)
     const body = JSON.stringify({
       app: APP_NAME,
@@ -117,7 +106,7 @@ export function reportClientLog(payload: ClientLogPayload): void {
       route,
       endpoint,
       http_status: payload.http_status,
-      trace_id: traceId,
+      ...(traceId ? { trace_id: traceId } : {}),
     })
 
     if (level === 'warn') {
@@ -130,7 +119,6 @@ export function reportClientLog(payload: ClientLogPayload): void {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Trace-Id': traceId,
         'X-Client-App': APP_NAME,
       },
       body,
