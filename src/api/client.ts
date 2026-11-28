@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { createTraceId, markErrorLogged, reportClientLog } from '../utils/logger'
 import type {
   Branch,
   Category,
@@ -25,6 +26,10 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  config.headers['X-Client-App'] = 'customer'
+  if (!config.headers['X-Trace-Id']) {
+    config.headers['X-Trace-Id'] = createTraceId()
   }
   return config
 })
@@ -62,6 +67,42 @@ api.interceptors.response.use(
         const jitter = Math.random() * 200
         await new Promise((resolve) => setTimeout(resolve, backoff + jitter))
         return api(config)
+      }
+    }
+
+    if (!axios.isCancel(error)) {
+      const status: number | undefined = error.response?.status
+      const method = (config.method || 'GET').toUpperCase()
+      const endpoint = `${method} ${config.url || ''}`.trim()
+      const traceId =
+        (error.response?.headers?.['x-trace-id'] as string | undefined) ||
+        (config.headers?.['X-Trace-Id'] as string | undefined)
+      const apiError = error.response?.data?.error
+      const detail =
+        typeof apiError === 'string' && apiError.trim()
+          ? apiError
+          : error.message || 'API request failed'
+
+      if (status && status >= 500) {
+        reportClientLog({
+          level: 'error',
+          category: 'api_error',
+          message: `HTTP ${status}: ${detail}`,
+          endpoint,
+          http_status: status,
+          trace_id: traceId,
+        })
+        markErrorLogged(error)
+      } else if (status === 429 || isNetworkOrTimeout) {
+        reportClientLog({
+          level: 'warn',
+          category: 'api_network',
+          message: status ? `HTTP ${status}: ${detail}` : `${error.code || 'NETWORK_ERROR'}: ${detail}`,
+          endpoint,
+          http_status: status,
+          trace_id: traceId,
+        })
+        markErrorLogged(error)
       }
     }
 

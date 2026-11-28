@@ -1,4 +1,5 @@
 import { lazy, type ComponentType } from 'react'
+import { reportClientLog } from './logger'
 
 const CHUNK_RELOAD_KEY = 'mareme_chunk_reload_at'
 const RELOAD_COOLDOWN_MS = 15_000
@@ -44,7 +45,15 @@ export function tryReloadOnceForChunkError(): boolean {
 export function registerPreloadErrorHandler(): void {
   if (typeof window === 'undefined') return
   window.addEventListener('vite:preloadError', (event) => {
-    if (tryReloadOnceForChunkError()) {
+    const reloaded = tryReloadOnceForChunkError()
+    reportClientLog({
+      level: reloaded ? 'warn' : 'error',
+      category: 'chunk_error',
+      message: reloaded
+        ? 'vite:preloadError triggered clean page reload'
+        : 'vite:preloadError persisted after reload cooldown',
+    })
+    if (reloaded) {
       event.preventDefault()
     }
   })

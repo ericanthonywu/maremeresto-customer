@@ -1,5 +1,6 @@
 import React from 'react'
 import { isChunkLoadError, tryReloadOnceForChunkError } from '../utils/lazyWithRetry'
+import { reportClientLog } from '../utils/logger'
 
 interface ErrorBoundaryState {
   hasError: boolean
@@ -16,10 +17,30 @@ export class ErrorBoundary extends React.Component<
     return { hasError: true, isChunkError: isChunkLoadError(error) }
   }
 
-  componentDidCatch(error: unknown) {
-    if (isChunkLoadError(error)) {
-      tryReloadOnceForChunkError()
+  componentDidCatch(error: unknown, info: React.ErrorInfo) {
+    const isChunk = isChunkLoadError(error)
+    const errMsg = error instanceof Error ? error.message : String(error)
+    const stack = [error instanceof Error ? error.stack : undefined, info?.componentStack]
+      .filter(Boolean)
+      .join('\n')
+
+    if (isChunk) {
+      const reloaded = tryReloadOnceForChunkError()
+      reportClientLog({
+        level: reloaded ? 'warn' : 'error',
+        category: 'chunk_error',
+        message: errMsg || 'Chunk load failed in ErrorBoundary',
+        stack,
+      })
+      return
     }
+
+    reportClientLog({
+      level: 'error',
+      category: 'react_boundary',
+      message: errMsg || 'React ErrorBoundary caught an error',
+      stack,
+    })
   }
 
   private handleReload = () => {

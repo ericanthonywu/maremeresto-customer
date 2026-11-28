@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { TOKEN_KEY } from '../api/client'
+import { reportClientLog } from '../utils/logger'
 
 interface WebSocketMessage {
   room?: string
@@ -102,7 +103,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let ws: WebSocket
     try {
       ws = new WebSocket(socketUrl())
-    } catch {
+    } catch (err) {
+      reportClientLog({
+        level: 'error',
+        category: 'ws_error',
+        message: err instanceof Error ? err.message : 'Failed to construct WebSocket',
+        stack: err instanceof Error ? err.stack : undefined,
+      })
       scheduleReconnect()
       return
     }
@@ -126,6 +133,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return
       }
       if (!msg.event) return
+      if (msg.event === 'error') {
+        reportClientLog({
+          level: 'warn',
+          category: 'ws_error',
+          message: typeof msg.payload === 'string' ? msg.payload : JSON.stringify(msg.payload ?? 'WebSocket server error'),
+        })
+        return
+      }
 
       const payload = msg.payload as OrderUpdate | undefined
       // Deliver only to the order the message is about. Previously every

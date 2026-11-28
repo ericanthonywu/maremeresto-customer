@@ -5,7 +5,9 @@ import App from './App.tsx'
 import {DevSupport} from "@react-buddy/ide-toolbox";
 import {ComponentPreviews, useInitial} from "./dev";
 import {registerPreloadErrorHandler} from "./utils/lazyWithRetry";
+import {installGlobalErrorHandlers} from "./utils/logger";
 
+installGlobalErrorHandlers();
 registerPreloadErrorHandler();
 
 createRoot(document.getElementById('root')!).render(
